@@ -394,7 +394,7 @@
         </label>
       </div>
       <div class="field">
-        <label>Descripción adicional</label>
+        <label>Descripción adicional <span class="req">*</span></label>
         <textarea id="descripcion_problema" placeholder="Descripción detallada del problema..."></textarea>
       </div>
     </div>
@@ -402,8 +402,8 @@
 
   <!-- DIAGNÓSTICO -->
   <div class="card">
-    <div class="card-header" onclick="toggleCard(this)">
-      🛠 DIAGNÓSTICO TÉCNICO
+    <div class="card-header" onclick="toggleCard(this)" id="diag-card-header">
+      🛠 DIAGNÓSTICO TÉCNICO <span class="req">*</span>
       <span class="chevron">▾</span>
     </div>
     <div class="card-body">
@@ -698,8 +698,13 @@ function setSaveStatus(state) {
   else { el.textContent = ''; el.className = 'save-indicator'; }
 }
 
-const REQUIRED_FIELDS = ['nombre_cliente', 'codigo_cliente', 'telefono', 'nombre_equipo', 'numero_serie', 'fecha_entrada'];
+const REQUIRED_FIELDS = ['nombre_cliente', 'codigo_cliente', 'telefono', 'nombre_equipo', 'numero_serie', 'fecha_entrada', 'descripcion_problema'];
 const PROBLEM_CHECKS = ['check_electrico', 'check_no_enfria', 'check_perdida_agua'];
+const DIAG_CHECKS = [
+  'diag_frio_termostato','diag_frio_condensador','diag_frio_gas',
+  'diag_elec_agitador','diag_elec_cableria','diag_elec_termostato','diag_elec_compresor','diag_elec_botonera',
+  'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador',
+];
 
 function validateRequired(showError = false) {
   const missing = [];
@@ -719,36 +724,43 @@ function validateRequired(showError = false) {
 
   // Al menos un tipo de problema marcado
   const anyProblem = PROBLEM_CHECKS.some(id => document.getElementById(id)?.checked);
-  const problemGrid = document.getElementById('check-grid-problema');
 
-  // Aplicar bordes rojos a campos de texto
+  // Al menos un diagnóstico marcado
+  const anyDiag = DIAG_CHECKS.some(id => document.getElementById(id)?.checked);
+
+  // Bordes rojos en campos de texto
   [...REQUIRED_FIELDS, 'delegacion'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    // delegacion solo se valida si es_comercial
     if (id === 'delegacion' && !esComercial) { el.classList.remove('field-required-error'); return; }
     if (missing.includes(id)) el.classList.add('field-required-error');
     else el.classList.remove('field-required-error');
   });
 
-  // Borde rojo en sección de problema si ninguno marcado
+  // Borde rojo en sección de problema
+  const problemGrid = document.getElementById('check-grid-problema');
   if (problemGrid) problemGrid.style.outline = (!anyProblem && showError) ? '2px solid var(--danger)' : '';
 
-  const totalErrors = missing.length + (anyProblem ? 0 : 1);
-  const msgEl = document.getElementById('validation-msg');
+  // Borde rojo en cabecera de diagnóstico
+  const diagHeader = document.getElementById('diag-card-header');
+  if (diagHeader) diagHeader.style.color = (!anyDiag && showError) ? 'var(--danger)' : '';
 
-  if (totalErrors > 0 && showError) {
-    const labels = missing.map(id => FIELD_LABELS[id] || id);
-    if (!anyProblem) labels.push('Tipo de problema');
-    msgEl.textContent = `⚠ Campos obligatorios vacíos: ${labels.join(', ')}`;
+  const errorLabels = missing.map(id => FIELD_LABELS[id] || id);
+  if (!anyProblem) errorLabels.push('Tipo de problema');
+  if (!anyDiag) errorLabels.push('Diagnóstico técnico');
+
+  const msgEl = document.getElementById('validation-msg');
+  if (errorLabels.length > 0 && showError) {
+    msgEl.textContent = `⚠ Campos obligatorios vacíos: ${errorLabels.join(', ')}`;
     msgEl.style.display = '';
     return false;
   }
-  if (totalErrors === 0) {
+  if (errorLabels.length === 0) {
     msgEl.style.display = 'none';
     if (problemGrid) problemGrid.style.outline = '';
+    if (diagHeader) diagHeader.style.color = '';
   }
-  return totalErrors === 0;
+  return errorLabels.length === 0;
 }
 
 async function save(showValidation = false) {
