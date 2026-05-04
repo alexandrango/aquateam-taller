@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — Stock Guardias</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #f59e0b;
+    --text: #e5e5e5;
+    --text-muted: #737373;
+    --danger: #ef4444;
+    --danger-dim: #7f1d1d;
+    --success: #22c55e;
+    --success-dim: #14532d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; letter-spacing: 1px; }
+  .nav-links { display: flex; gap: 12px; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.2s; letter-spacing: 1px;
+  }
+  .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 6px; }
+  .ws-dot.connected { background: var(--success); }
+
+  #stock-alert {
+    background: var(--danger-dim); border: 1px solid var(--danger);
+    color: #fca5a5; padding: 10px 20px; text-align: center;
+    font-size: 0.9rem; letter-spacing: 1px; display: none;
+  }
+  #stock-alert.visible { display: block; }
+
+  main { padding: 24px 20px; max-width: 900px; margin: 0 auto; }
+  .section-title {
+    font-size: 0.75rem; color: var(--text-muted); letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 20px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+  .stock-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 24px; transition: border-color 0.3s;
+  }
+  .stock-card.ok { border-left: 4px solid var(--success); }
+  .stock-card.fail { border-left: 4px solid var(--danger); }
+
+  .stock-nombre {
+    font-size: 1.1rem; font-weight: bold; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 20px; color: var(--accent);
+  }
+
+  .toggle-wrap { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+  .toggle-btn {
+    width: 100%; padding: 16px 20px; border-radius: 6px; border: none;
+    font-family: 'Courier New', monospace; font-size: 1rem; font-weight: bold;
+    letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .toggle-btn.on {
+    background: var(--success-dim); color: var(--success);
+    border: 2px solid var(--success);
+  }
+  .toggle-btn.on:hover { background: #166534; }
+  .toggle-btn.off {
+    background: var(--danger-dim); color: #fca5a5;
+    border: 2px solid var(--danger);
+  }
+  .toggle-btn.off:hover { background: #991b1b; }
+
+  .updated-at { font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AQUATEAM <span>STOCK GUARDIAS</span></div>
+  <div class="nav-links">
+    <a href="/">← TALLER</a>
+    <a href="/qrs">🔲 QRs</a>
+  </div>
+  <div style="font-size:0.75rem; color:var(--text-muted);">
+    <span class="ws-dot" id="ws-dot"></span><span id="ws-status">Conectando...</span>
+  </div>
+</header>
+
+<div id="stock-alert">⚠ HAY GUARDIAS SIN MÁQUINA PREPARADA</div>
+
+<main>
+  <div class="section-title">ESTADO DE MÁQUINAS GUARDIAS</div>
+  <div class="stock-grid" id="stock-grid"></div>
+</main>
+
+<script>
+const LABELS = {
+  sotobanco: 'Sotobanco',
+  tres_aguas: '3 Aguas',
+  dos_aguas: '2 Aguas',
+};
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  } catch { return ''; }
+}
+
+function renderStock(lista) {
+  const grid = document.getElementById('stock-grid');
+  grid.innerHTML = '';
+  const hayAlerta = lista.some(s => !s.preparada);
+  document.getElementById('stock-alert').classList.toggle('visible', hayAlerta);
+
+  lista.forEach(s => {
+    const card = document.createElement('div');
+    card.className = `stock-card ${s.preparada ? 'ok' : 'fail'}`;
+    card.dataset.tipo = s.tipo;
+    card.innerHTML = `
+      <div class="stock-nombre">${LABELS[s.tipo] || s.tipo}</div>
+      <div class="toggle-wrap">
+        <button class="toggle-btn ${s.preparada ? 'on' : 'off'}" onclick="toggle('${s.tipo}', ${!s.preparada})">
+          ${s.preparada ? '✓ MÁQUINA PREPARADA' : '⚠ SIN MÁQUINA DISPONIBLE'}
+        </button>
+        <div class="updated-at">${s.updated_at ? 'Actualizado: ' + fmtDate(s.updated_at) : 'Sin cambios registrados'}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+async function toggle(tipo, preparada) {
+  await fetch(`/api/stock/${tipo}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ preparada })
+  });
+}
+
+async function load() {
+  const res = await fetch('/api/stock');
+  renderStock(await res.json());
+}
+
+let ws, wsRetry = 1000;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  const dot = document.getElementById('ws-dot');
+  const status = document.getElementById('ws-status');
+  ws.onopen = () => { dot.classList.add('connected'); status.textContent = 'En línea'; wsRetry = 1000; };
+  ws.onclose = () => { dot.classList.remove('connected'); status.textContent = 'Reconectando...'; setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'stock_updated') renderStock(msg.data);
+    } catch {}
+  };
+}
+
+load();
+connectWS();
+</script>
+</body>
+</html>

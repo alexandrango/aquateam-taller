@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — QRs</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --border: #2e2e2e;
+    --accent: #f59e0b;
+    --text: #e5e5e5;
+    --text-muted: #737373;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; }
+  .nav-links { display: flex; gap: 12px; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: 4px; transition: all 0.2s;
+  }
+  .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-print {
+    background: var(--accent); color: #000; border: none;
+    padding: 10px 20px; border-radius: 4px; font-family: 'Courier New', monospace;
+    font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; cursor: pointer;
+  }
+  .btn-print:hover { background: #d97706; }
+
+  main { padding: 24px 20px; max-width: 1200px; margin: 0 auto; }
+  .section-title {
+    font-size: 0.75rem; color: var(--text-muted); letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 20px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .qr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
+
+  .qr-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .qr-item.stock-item { border-color: var(--accent); }
+
+  .qr-canvas { background: #fff; padding: 8px; border-radius: 4px; }
+  .qr-label {
+    font-size: 1.4rem; font-weight: bold; color: var(--accent);
+    letter-spacing: 3px; text-align: center;
+  }
+  .qr-sublabel { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1px; text-align: center; }
+
+  @media print {
+    header, .btn-print { display: none !important; }
+    body { background: #fff; color: #000; }
+    main { padding: 8px; }
+    .section-title { color: #666; border-color: #ccc; }
+    .qr-item {
+      background: #fff; border: 1px solid #ccc;
+      break-inside: avoid;
+    }
+    .qr-label { color: #000; }
+    .qr-sublabel { color: #666; }
+    .qr-grid { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AQUATEAM <span>CÓDIGOS QR — TALLER</span></div>
+  <div class="nav-links">
+    <a href="/">← TALLER</a>
+    <a href="/stock">📦 STOCK</a>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨 IMPRIMIR TODO</button>
+</header>
+
+<main>
+  <div class="section-title">QR POR PUESTO (4–20) + STOCK GUARDIAS</div>
+  <div class="qr-grid" id="qr-grid"></div>
+</main>
+
+<script>
+const base = `${location.protocol}//${location.host}`;
+const grid = document.getElementById('qr-grid');
+
+function makeQR(url, label, sublabel, extraClass = '') {
+  const item = document.createElement('div');
+  item.className = `qr-item${extraClass ? ' ' + extraClass : ''}`;
+
+  const canvas = document.createElement('div');
+  canvas.className = 'qr-canvas';
+
+  const labelEl = document.createElement('div');
+  labelEl.className = 'qr-label';
+  labelEl.textContent = label;
+
+  const subEl = document.createElement('div');
+  subEl.className = 'qr-sublabel';
+  subEl.textContent = sublabel;
+
+  item.appendChild(canvas);
+  item.appendChild(labelEl);
+  item.appendChild(subEl);
+  grid.appendChild(item);
+
+  new QRCode(canvas, {
+    text: url,
+    width: 128,
+    height: 128,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+// Puestos 4–20
+for (let n = 4; n <= 20; n++) {
+  makeQR(
+    `${base}/puesto/${n}`,
+    String(n).padStart(2, '0'),
+    `PUESTO ${n}`
+  );
+}
+
+// Stock guardias
+makeQR(`${base}/stock`, '📦', 'STOCK GUARDIAS', 'stock-item');
+</script>
+</body>
+</html>

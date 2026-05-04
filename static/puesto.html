@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — Puesto</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #f59e0b;
+    --accent-dim: #92400e;
+    --text: #e5e5e5;
+    --text-muted: #737373;
+    --danger: #ef4444;
+    --danger-dim: #7f1d1d;
+    --success: #22c55e;
+    --input-bg: #111;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+    flex-wrap: wrap;
+  }
+  .back-link { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
+  .back-link:hover { border-color: var(--accent); color: var(--accent); }
+  .puesto-title { font-size: 1.4rem; font-weight: bold; color: var(--accent); letter-spacing: 3px; }
+  .dias-badge {
+    font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .dias-badge.alert { background: var(--danger-dim); border-color: var(--danger); color: #fca5a5; }
+  .save-indicator { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); letter-spacing: 1px; min-width: 120px; text-align: right; }
+  .save-indicator.saving { color: var(--accent); }
+  .save-indicator.saved { color: var(--success); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
+  .ws-dot.connected { background: var(--success); }
+
+  main { padding: 20px; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--surface2);
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-header .chevron { margin-left: auto; transition: transform 0.2s; }
+  .card-body { padding: 16px; }
+  .card-body.collapsed { display: none; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+  input[type=text], input[type=date], textarea {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    padding: 10px 12px;
+    width: 100%;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  input[type=text]:focus, input[type=date]:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 0.9rem; }
+
+  /* Toggle switch */
+  .switch { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--border); border-radius: 26px; transition: 0.3s;
+  }
+  .slider:before {
+    content: ''; position: absolute;
+    height: 20px; width: 20px; left: 3px; bottom: 3px;
+    background: var(--text-muted); border-radius: 50%; transition: 0.3s;
+  }
+  input:checked + .slider { background: var(--accent-dim); }
+  input:checked + .slider:before { transform: translateX(22px); background: var(--accent); }
+
+  /* Checkboxes grandes */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 400px) { .check-grid { grid-template-columns: 1fr; } }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 10px 12px; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .check-item:hover { border-color: var(--accent); }
+  .check-item input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .check-item label { font-size: 0.85rem; cursor: pointer; }
+
+  .delegacion-row { display: none; }
+  .delegacion-row.visible { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
+
+  .btn-row { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+  .btn {
+    padding: 12px 20px; border-radius: 4px; border: none; cursor: pointer;
+    font-family: 'Courier New', monospace; font-size: 0.9rem; letter-spacing: 1px;
+    font-weight: bold; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+  .btn-primary:hover { background: #78350f; }
+  .btn-danger { background: var(--danger-dim); color: #fca5a5; border: 1px solid var(--danger); }
+  .btn-danger:hover { background: #991b1b; }
+
+  .diag-panels { display: flex; flex-direction: column; gap: 8px; }
+  .diag-panel { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .diag-panel-header {
+    padding: 10px 16px; background: var(--surface2);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none; font-size: 0.85rem; letter-spacing: 2px;
+  }
+  .diag-panel-header:hover { background: #2a2a2a; }
+  .diag-panel-body { padding: 12px; display: none; }
+  .diag-panel-body.open { display: block; }
+  .diag-chevron { transition: transform 0.2s; }
+  .diag-panel-body.open ~ .diag-chevron { transform: rotate(180deg); }
+</style>
+</head>
+<body>
+<header>
+  <a class="back-link" href="/">← TALLER</a>
+  <div class="puesto-title" id="puesto-title">PUESTO —</div>
+  <div class="dias-badge" id="dias-badge" style="display:none"></div>
+  <div class="save-indicator" id="save-indicator"></div>
+  <span class="ws-dot" id="ws-dot" title="WebSocket"></span>
+</header>
+
+<main>
+  <!-- DATOS CLIENTE -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      👤 DATOS CLIENTE
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="field">
+          <label>Nombre cliente</label>
+          <input type="text" id="nombre_cliente" placeholder="Nombre del cliente">
+        </div>
+        <div class="field">
+          <label>Teléfono</label>
+          <input type="text" id="telefono" placeholder="Teléfono de contacto">
+        </div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">¿Es comercial?</span>
+        <label class="switch">
+          <input type="checkbox" id="es_comercial" onchange="toggleDelegacion()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="delegacion-row" id="delegacion-row">
+        <label>Delegación</label>
+        <input type="text" id="delegacion" placeholder="Delegación / empresa">
+      </div>
+      <div class="form-row" style="margin-top:12px;">
+        <div class="field">
+          <label>Fecha de entrada</label>
+          <input type="date" id="fecha_entrada">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EQUIPO -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      🔧 EQUIPO
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="form-row full">
+        <div class="field">
+          <label>Nombre del equipo</label>
+          <input type="text" id="nombre_equipo" placeholder="Modelo / tipo de equipo">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Número de serie</label>
+          <input type="text" id="numero_serie" placeholder="S/N">
+        </div>
+        <div class="field">
+          <label>Código de barras 📷</label>
+          <input type="text" id="codigo_barras" placeholder="Escanear o introducir">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEMA -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      ❗ DESCRIPCIÓN DEL PROBLEMA
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="check-grid" style="margin-bottom:12px;">
+        <label class="check-item">
+          <input type="checkbox" id="check_electrico">
+          <label for="check_electrico">⚡ Problema eléctrico</label>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="check_botones">
+          <label for="check_botones">🔘 Botones</label>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="check_no_enfria">
+          <label for="check_no_enfria">🧊 No enfría</label>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" id="check_perdida_agua">
+          <label for="check_perdida_agua">💧 Pérdida de agua</label>
+        </label>
+      </div>
+      <div class="field">
+        <label>Descripción adicional</label>
+        <textarea id="descripcion_problema" placeholder="Descripción detallada del problema..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIAGNÓSTICO TÉCNICO -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      🛠 DIAGNÓSTICO TÉCNICO
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="diag-panels">
+
+        <!-- FRÍO -->
+        <div class="diag-panel">
+          <div class="diag-panel-header" onclick="toggleDiag(this)">
+            🧊 FRÍO
+            <span class="diag-chevron">▾</span>
+          </div>
+          <div class="diag-panel-body">
+            <div class="check-grid">
+              <label class="check-item"><input type="checkbox" id="diag_frio_termostato"><label for="diag_frio_termostato">Termostato</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_frio_condensador"><label for="diag_frio_condensador">Condensador</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_frio_gas"><label for="diag_frio_gas">Gas</label></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ELÉCTRICO -->
+        <div class="diag-panel">
+          <div class="diag-panel-header" onclick="toggleDiag(this)">
+            ⚡ ELÉCTRICO
+            <span class="diag-chevron">▾</span>
+          </div>
+          <div class="diag-panel-body">
+            <div class="check-grid">
+              <label class="check-item"><input type="checkbox" id="diag_elec_agitador"><label for="diag_elec_agitador">Agitador en corto</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_elec_cableria"><label for="diag_elec_cableria">Cablería</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_elec_termostato"><label for="diag_elec_termostato">Termostato</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_elec_compresor"><label for="diag_elec_compresor">Compresor</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_elec_botonera"><label for="diag_elec_botonera">Botonera</label></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- AGUA -->
+        <div class="diag-panel">
+          <div class="diag-panel-header" onclick="toggleDiag(this)">
+            💧 AGUA FRÍA / AGUA CON GAS
+            <span class="diag-chevron">▾</span>
+          </div>
+          <div class="diag-panel-body">
+            <div class="check-grid">
+              <label class="check-item"><input type="checkbox" id="diag_agua_pin_electrico"><label for="diag_agua_pin_electrico">Pin eléctrico</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_agua_banco_hielo"><label for="diag_agua_banco_hielo">Banco de hielo</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_agua_bomba_laton"><label for="diag_agua_bomba_laton">Bomba de latón</label></label>
+              <label class="check-item"><input type="checkbox" id="diag_agua_condensador"><label for="diag_agua_condensador">Condensador</label></label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="saveNow()">💾 GUARDAR AHORA</button>
+    <button class="btn btn-danger" onclick="limpiarPuesto()">🗑 LIMPIAR PUESTO</button>
+  </div>
+</main>
+
+<script>
+const numero = parseInt(location.pathname.split('/').pop());
+document.getElementById('puesto-title').textContent = `PUESTO ${String(numero).padStart(2,'0')}`;
+
+// Campos de texto y sus IDs
+const TEXT_FIELDS = ['nombre_cliente','es_comercial','delegacion','fecha_entrada','telefono',
+  'nombre_equipo','numero_serie','codigo_barras','descripcion_problema'];
+const BOOL_FIELDS = ['es_comercial','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
+  'diag_frio_termostato','diag_frio_condensador','diag_frio_gas',
+  'diag_elec_agitador','diag_elec_cableria','diag_elec_termostato','diag_elec_compresor','diag_elec_botonera',
+  'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador'];
+
+let focusedField = null;
+let debounceTimer = null;
+let currentData = {};
+
+document.querySelectorAll('input, textarea').forEach(el => {
+  el.addEventListener('focus', () => focusedField = el.id);
+  el.addEventListener('blur', () => { if (focusedField === el.id) focusedField = null; });
+});
+
+function getFormData() {
+  const data = {};
+  document.querySelectorAll('input[type=text], input[type=date], textarea').forEach(el => {
+    data[el.id] = el.value;
+  });
+  document.querySelectorAll('input[type=checkbox]').forEach(el => {
+    data[el.id] = el.checked ? 1 : 0;
+  });
+  return data;
+}
+
+function fillForm(p, skipFocused = false) {
+  currentData = p;
+  ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(id => {
+    if (skipFocused && focusedField === id) return;
+    const el = document.getElementById(id);
+    if (el) el.value = p[id] || '';
+  });
+  BOOL_FIELDS.forEach(id => {
+    if (skipFocused && focusedField === id) return;
+    const el = document.getElementById(id);
+    if (el) el.checked = !!p[id];
+  });
+  toggleDelegacion();
+  updateDiasBadge(p.fecha_entrada);
+}
+
+function updateDiasBadge(fechaISO) {
+  const badge = document.getElementById('dias-badge');
+  if (!fechaISO) { badge.style.display = 'none'; return; }
+  const entrada = new Date(fechaISO);
+  if (isNaN(entrada)) { badge.style.display = 'none'; return; }
+  const hoy = new Date(); hoy.setHours(0,0,0,0); entrada.setHours(0,0,0,0);
+  const dias = Math.floor((hoy - entrada) / 86400000);
+  badge.style.display = '';
+  badge.textContent = `${dias} día${dias !== 1 ? 's' : ''} en taller`;
+  badge.className = `dias-badge${dias > 7 ? ' alert' : ''}`;
+}
+
+function setSaveStatus(state) {
+  const el = document.getElementById('save-indicator');
+  if (state === 'saving') { el.textContent = 'Guardando...'; el.className = 'save-indicator saving'; }
+  else if (state === 'saved') { el.textContent = '✓ Guardado'; el.className = 'save-indicator saved'; }
+  else { el.textContent = ''; el.className = 'save-indicator'; }
+}
+
+async function save() {
+  setSaveStatus('saving');
+  const data = getFormData();
+  try {
+    const res = await fetch(`/api/puesto/${numero}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    currentData = await res.json();
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus(''), 2000);
+    updateDiasBadge(currentData.fecha_entrada);
+  } catch {
+    setSaveStatus('');
+  }
+}
+
+function scheduleAutoSave() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(save, 2000);
+}
+
+async function saveNow() {
+  clearTimeout(debounceTimer);
+  await save();
+}
+
+async function limpiarPuesto() {
+  if (!confirm(`¿Limpiar el puesto ${numero}? Se borrarán todos los datos.`)) return;
+  const empty = {};
+  ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(k => empty[k] = '');
+  BOOL_FIELDS.forEach(k => empty[k] = 0);
+  await fetch(`/api/puesto/${numero}`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(empty)
+  });
+  fillForm({...empty, numero});
+  setSaveStatus('saved');
+  setTimeout(() => setSaveStatus(''), 2000);
+}
+
+function toggleDelegacion() {
+  const checked = document.getElementById('es_comercial').checked;
+  document.getElementById('delegacion-row').classList.toggle('visible', checked);
+}
+
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('collapsed');
+  chevron.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+function toggleDiag(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.diag-chevron');
+  body.classList.toggle('open');
+  chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// Auto-save on any input change
+document.querySelectorAll('input, textarea').forEach(el => {
+  el.addEventListener('change', scheduleAutoSave);
+  el.addEventListener('input', scheduleAutoSave);
+});
+
+// Load data
+async function load() {
+  const res = await fetch(`/api/puesto/${numero}`);
+  const p = await res.json();
+  fillForm(p);
+  if (!p.fecha_entrada) {
+    document.getElementById('fecha_entrada').value = new Date().toISOString().slice(0,10);
+  }
+}
+
+// WebSocket
+let ws, wsRetry = 1000;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  const dot = document.getElementById('ws-dot');
+  ws.onopen = () => { dot.classList.add('connected'); wsRetry = 1000; };
+  ws.onclose = () => { dot.classList.remove('connected'); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'puesto_updated' && msg.numero === numero) {
+        fillForm(msg.data, true);
+      }
+    } catch {}
+  };
+}
+
+load();
+connectWS();
+</script>
+</body>
+</html>

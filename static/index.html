@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — Control de Reparaciones</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #f59e0b;
+    --accent-dim: #92400e;
+    --text: #e5e5e5;
+    --text-muted: #737373;
+    --danger: #ef4444;
+    --danger-dim: #7f1d1d;
+    --success: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; letter-spacing: 1px; }
+  .nav-links { display: flex; gap: 12px; }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
+  .ws-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted); display: inline-block; margin-right: 6px;
+    transition: background 0.3s;
+  }
+  .ws-dot.connected { background: var(--success); }
+
+  #stock-alert {
+    background: var(--danger-dim);
+    border: 1px solid var(--danger);
+    color: #fca5a5;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    display: none;
+  }
+  #stock-alert.visible { display: block; }
+
+  main { padding: 24px 20px; max-width: 1400px; margin: 0 auto; }
+
+  .section-title {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .puesto-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.1s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+  .puesto-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .puesto-card.occupied { border-left: 3px solid var(--accent); }
+  .puesto-card.alert {
+    border-color: var(--danger);
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.3); }
+  }
+
+  .puesto-num {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .puesto-cliente {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .puesto-libre { color: var(--text-muted); font-style: italic; }
+  .puesto-equipo {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 8px;
+  }
+  .puesto-dias {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+  .puesto-dias.alert-dias {
+    color: var(--danger);
+    font-weight: bold;
+  }
+  .badge-libre {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .badge-ocup {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    AQUATEAM
+    <span>CONTROL DE TALLER</span>
+  </div>
+  <div class="nav-links">
+    <a href="/stock">📦 STOCK GUARDIAS</a>
+    <a href="/qrs">🔲 QRs</a>
+  </div>
+  <div style="font-size:0.75rem; color:var(--text-muted);">
+    <span class="ws-dot" id="ws-dot"></span><span id="ws-status">Conectando...</span>
+  </div>
+</header>
+
+<div id="stock-alert">⚠ ALERTA: Hay guardias sin máquina preparada — ver <a href="/stock" style="color:#fca5a5;">Stock Guardias</a></div>
+
+<main>
+  <div class="section-title">PUESTOS DE TRABAJO — TALLER</div>
+  <div id="grid"></div>
+</main>
+
+<script>
+const grid = document.getElementById('grid');
+let puestosData = {};
+
+function calcDias(fechaISO) {
+  if (!fechaISO) return null;
+  const entrada = new Date(fechaISO);
+  if (isNaN(entrada)) return null;
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  entrada.setHours(0,0,0,0);
+  return Math.floor((hoy - entrada) / 86400000);
+}
+
+function renderCard(p) {
+  const dias = calcDias(p.fecha_entrada);
+  const isAlert = dias !== null && dias > 7;
+  const isOcup = !!p.nombre_cliente;
+
+  let diasHtml = '';
+  if (dias !== null && isOcup) {
+    diasHtml = `<div class="puesto-dias${isAlert ? ' alert-dias' : ''}">
+      ${isAlert ? '⚠ ' : ''}${dias} día${dias !== 1 ? 's' : ''} en taller${isAlert ? ' — REVISAR' : ''}
+    </div>`;
+  }
+
+  const card = document.createElement('a');
+  card.href = `/puesto/${p.numero}`;
+  card.className = `puesto-card${isOcup ? ' occupied' : ''}${isAlert ? ' alert' : ''}`;
+  card.dataset.numero = p.numero;
+  card.innerHTML = `
+    <div class="${isOcup ? 'badge-ocup' : 'badge-libre'}"></div>
+    <div class="puesto-num">${String(p.numero).padStart(2,'0')}</div>
+    <div class="puesto-cliente${!isOcup ? ' puesto-libre' : ''}">${p.nombre_cliente || 'Libre'}</div>
+    <div class="puesto-equipo">${p.nombre_equipo || '—'}</div>
+    ${diasHtml}
+  `;
+  return card;
+}
+
+async function loadPuestos() {
+  const res = await fetch('/api/puestos');
+  const lista = await res.json();
+  puestosData = {};
+  lista.forEach(p => puestosData[p.numero] = p);
+  grid.innerHTML = '';
+  lista.forEach(p => grid.appendChild(renderCard(p)));
+}
+
+async function loadStock() {
+  const res = await fetch('/api/stock');
+  const stock = await res.json();
+  const hayAlerta = stock.some(s => !s.preparada);
+  const alert = document.getElementById('stock-alert');
+  alert.classList.toggle('visible', hayAlerta);
+}
+
+function updateCard(p) {
+  puestosData[p.numero] = p;
+  const existing = grid.querySelector(`[data-numero="${p.numero}"]`);
+  const newCard = renderCard(p);
+  if (existing) grid.replaceChild(newCard, existing);
+}
+
+// WebSocket con reconexión automática
+let ws, wsRetry = 1000;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  const dot = document.getElementById('ws-dot');
+  const status = document.getElementById('ws-status');
+
+  ws.onopen = () => {
+    dot.classList.add('connected');
+    status.textContent = 'En línea';
+    wsRetry = 1000;
+  };
+  ws.onclose = () => {
+    dot.classList.remove('connected');
+    status.textContent = 'Reconectando...';
+    setTimeout(connectWS, wsRetry);
+    wsRetry = Math.min(wsRetry * 2, 30000);
+  };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'puesto_updated') updateCard(msg.data);
+      if (msg.type === 'stock_updated') {
+        const hayAlerta = msg.data.some(s => !s.preparada);
+        document.getElementById('stock-alert').classList.toggle('visible', hayAlerta);
+      }
+    } catch {}
+  };
+}
+
+loadPuestos();
+loadStock();
+connectWS();
+</script>
+</body>
+</html>
