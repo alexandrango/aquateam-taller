@@ -300,6 +300,13 @@
           <span class="slider"></span>
         </label>
       </div>
+      <div class="toggle-row">
+        <span class="toggle-label">🔑 ¿Máquina en alquiler?</span>
+        <label class="switch">
+          <input type="checkbox" id="es_alquiler">
+          <span class="slider"></span>
+        </label>
+      </div>
       <div class="delegacion-row" id="delegacion-row">
         <label>Delegación</label>
         <input type="text" id="delegacion" placeholder="Delegación / empresa">
@@ -552,7 +559,7 @@ function checkSession() {
 
 // ── Campos y snapshot ─────────────────────────────────────────────────────────
 const BOOL_FIELDS = [
-  'es_comercial','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
+  'es_comercial','es_alquiler','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
   'diag_frio_termostato','diag_frio_condensador','diag_frio_gas',
   'diag_elec_agitador','diag_elec_cableria','diag_elec_termostato','diag_elec_compresor','diag_elec_botonera',
   'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador',
@@ -563,6 +570,7 @@ const FIELD_LABELS = {
   telefono: 'Teléfono',
   delegacion: 'Delegación',
   es_comercial: 'Tipo comercial',
+  es_alquiler: 'Máquina en alquiler',
   fecha_entrada: 'Fecha de entrada',
   nombre_equipo: 'Equipo',
   numero_serie: 'Número de serie',
