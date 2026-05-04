@@ -298,6 +298,12 @@
           <input type="text" id="nombre_cliente" placeholder="Nombre del cliente">
         </div>
         <div class="field">
+          <label>Código de cliente</label>
+          <input type="text" id="codigo_cliente" placeholder="Cód. cliente">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
           <label>Teléfono</label>
           <input type="text" id="telefono" placeholder="Teléfono de contacto">
         </div>
@@ -580,6 +586,7 @@ const BOOL_FIELDS = [
 
 const FIELD_LABELS = {
   nombre_cliente: 'Cliente',
+  codigo_cliente: 'Código de cliente',
   telefono: 'Teléfono',
   delegacion: 'Delegación',
   es_comercial: 'Tipo comercial',
@@ -652,7 +659,7 @@ function detectCambios(prev, curr) {
 }
 
 function fillForm(p, skipFocused = false) {
-  ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(id => {
+  ['nombre_cliente','codigo_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(id => {
     if (skipFocused && focusedField === id) return;
     const el = document.getElementById(id);
     if (el) el.value = p[id] || '';
@@ -753,7 +760,7 @@ async function saveNow() {
 async function limpiarPuesto() {
   if (!confirm(`¿Limpiar el puesto ${numero}? Se borrarán todos los datos.`)) return;
   const empty = {};
-  ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(k => empty[k] = '');
+  ['nombre_cliente','codigo_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(k => empty[k] = '');
   BOOL_FIELDS.forEach(k => empty[k] = 0);
   const payload = {
     ...empty,
