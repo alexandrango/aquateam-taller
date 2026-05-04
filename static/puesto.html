@@ -331,7 +331,7 @@
         </label>
       </div>
       <div class="delegacion-row" id="delegacion-row">
-        <label>Delegación</label>
+        <label>Delegación <span class="req">*</span></label>
         <input type="text" id="delegacion" placeholder="Delegación / empresa">
       </div>
       <div class="form-row" style="margin-top:12px;">
@@ -358,7 +358,7 @@
       </div>
       <div class="form-row">
         <div class="field">
-          <label>Número de serie</label>
+          <label>Número de serie <span class="req">*</span></label>
           <input type="text" id="numero_serie" placeholder="S/N">
         </div>
         <div class="field">
@@ -376,7 +376,10 @@
       <span class="chevron">▾</span>
     </div>
     <div class="card-body">
-      <div class="check-grid" style="margin-bottom:12px;">
+      <div style="font-size:0.7rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">
+        Tipo de problema <span class="req">*</span>
+      </div>
+      <div class="check-grid" id="check-grid-problema" style="margin-bottom:8px;">
         <label class="check-item">
           <input type="checkbox" id="check_electrico">
           <label for="check_electrico">⚡ Problema eléctrico</label>
@@ -695,27 +698,57 @@ function setSaveStatus(state) {
   else { el.textContent = ''; el.className = 'save-indicator'; }
 }
 
-const REQUIRED_FIELDS = ['nombre_cliente', 'codigo_cliente', 'telefono', 'nombre_equipo', 'fecha_entrada'];
+const REQUIRED_FIELDS = ['nombre_cliente', 'codigo_cliente', 'telefono', 'nombre_equipo', 'numero_serie', 'fecha_entrada'];
+const PROBLEM_CHECKS = ['check_electrico', 'check_no_enfria', 'check_perdida_agua'];
+
 function validateRequired(showError = false) {
-  const missing = REQUIRED_FIELDS.filter(id => {
-    const el = document.getElementById(id);
-    return !el || !el.value.trim();
-  });
+  const missing = [];
+
+  // Campos de texto obligatorios
   REQUIRED_FIELDS.forEach(id => {
     const el = document.getElementById(id);
+    if (!el || !el.value.trim()) missing.push(id);
+  });
+
+  // Delegación obligatoria si es comercial
+  const esComercial = document.getElementById('es_comercial')?.checked;
+  if (esComercial) {
+    const del = document.getElementById('delegacion');
+    if (!del || !del.value.trim()) missing.push('delegacion');
+  }
+
+  // Al menos un tipo de problema marcado
+  const anyProblem = PROBLEM_CHECKS.some(id => document.getElementById(id)?.checked);
+  const problemGrid = document.getElementById('check-grid-problema');
+
+  // Aplicar bordes rojos a campos de texto
+  [...REQUIRED_FIELDS, 'delegacion'].forEach(id => {
+    const el = document.getElementById(id);
     if (!el) return;
+    // delegacion solo se valida si es_comercial
+    if (id === 'delegacion' && !esComercial) { el.classList.remove('field-required-error'); return; }
     if (missing.includes(id)) el.classList.add('field-required-error');
     else el.classList.remove('field-required-error');
   });
+
+  // Borde rojo en sección de problema si ninguno marcado
+  if (problemGrid) problemGrid.style.outline = (!anyProblem && showError) ? '2px solid var(--danger)' : '';
+
+  const totalErrors = missing.length + (anyProblem ? 0 : 1);
   const msgEl = document.getElementById('validation-msg');
-  if (missing.length && showError) {
+
+  if (totalErrors > 0 && showError) {
     const labels = missing.map(id => FIELD_LABELS[id] || id);
+    if (!anyProblem) labels.push('Tipo de problema');
     msgEl.textContent = `⚠ Campos obligatorios vacíos: ${labels.join(', ')}`;
     msgEl.style.display = '';
     return false;
   }
-  if (!missing.length) msgEl.style.display = 'none';
-  return missing.length === 0;
+  if (totalErrors === 0) {
+    msgEl.style.display = 'none';
+    if (problemGrid) problemGrid.style.outline = '';
+  }
+  return totalErrors === 0;
 }
 
 async function save(showValidation = false) {
