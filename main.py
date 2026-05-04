@@ -1,4 +1,5 @@
 import json
+import os
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -150,6 +151,15 @@ async def api_update_stock(tipo: str, body: dict):
 
 
 # ── API auth ──────────────────────────────────────────────────────────────────
+
+@app.post("/api/auth/admin")
+async def api_auth_admin(body: dict):
+    admin_pin = os.environ.get("ADMIN_PIN", "0000")
+    pin = str(body.get("pin", "")).strip()
+    if pin == admin_pin:
+        return {"ok": True}
+    return {"ok": False}
+
 
 @app.post("/api/auth/pin")
 async def api_auth_pin(body: dict):
