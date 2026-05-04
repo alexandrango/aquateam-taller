@@ -1,7 +1,11 @@
 import aiosqlite
+import os
 from datetime import datetime, timezone
 
-DB_PATH = "taller.db"
+# La ruta de la base de datos se lee de la variable de entorno DB_PATH.
+# En Railway: crea un volumen, móntalo en /data y añade DB_PATH=/data/taller.db
+# como variable de entorno en el servicio. Sin volumen los datos se pierden al redeploy.
+DB_PATH = os.environ.get("DB_PATH", "./taller.db")
 
 
 async def init_db():
@@ -58,12 +62,37 @@ async def init_db():
                 (tipo,)
             )
 
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS tecnicos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                pin TEXT NOT NULL UNIQUE,
+                activo BOOLEAN DEFAULT 1,
+                created_at TEXT
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS historial (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                puesto_numero INTEGER,
+                tecnico_id INTEGER,
+                tecnico_nombre TEXT,
+                accion TEXT,
+                campo TEXT,
+                valor_nuevo TEXT,
+                timestamp TEXT
+            )
+        """)
+
         await db.commit()
 
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
 
+
+# ── Puestos ──────────────────────────────────────────────────────────────────
 
 async def get_all_puestos():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -111,6 +140,8 @@ async def update_puesto(numero: int, data: dict):
     return await get_puesto(numero)
 
 
+# ── Stock ─────────────────────────────────────────────────────────────────────
+
 async def get_stock():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -127,3 +158,111 @@ async def update_stock(tipo: str, preparada: bool):
         )
         await db.commit()
     return await get_stock()
+
+
+# ── Técnicos ──────────────────────────────────────────────────────────────────
+
+async def get_all_tecnicos():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM tecnicos ORDER BY nombre") as cur:
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_tecnico_by_pin(pin: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM tecnicos WHERE pin = ? AND activo = 1", (pin,)
+        ) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def create_tecnico(nombre: str, pin: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO tecnicos (nombre, pin, activo, created_at) VALUES (?, ?, 1, ?)",
+            (nombre, pin, _now())
+        )
+        await db.commit()
+        async with db.execute("SELECT last_insert_rowid()") as cur:
+            row = await cur.fetchone()
+            rowid = row[0]
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM tecnicos WHERE id = ?", (rowid,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def update_tecnico(id: int, nombre: str, pin: str, activo: bool):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE tecnicos SET nombre = ?, pin = ?, activo = ? WHERE id = ?",
+            (nombre, pin, 1 if activo else 0, id)
+        )
+        await db.commit()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM tecnicos WHERE id = ?", (id,)) as cur:
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+
+async def delete_tecnico(id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM historial WHERE tecnico_id = ?", (id,)
+        ) as cur:
+            row = await cur.fetchone()
+            tiene_historial = row[0] > 0
+
+        if tiene_historial:
+            await db.execute("UPDATE tecnicos SET activo = 0 WHERE id = ?", (id,))
+        else:
+            await db.execute("DELETE FROM tecnicos WHERE id = ?", (id,))
+        await db.commit()
+    return {"ok": True, "desactivado": tiene_historial}
+
+
+# ── Historial ─────────────────────────────────────────────────────────────────
+
+async def add_historial(
+    puesto_numero: int,
+    tecnico_id: int,
+    tecnico_nombre: str,
+    accion: str,
+    campo: str = None,
+    valor_nuevo: str = None,
+):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO historial
+               (puesto_numero, tecnico_id, tecnico_nombre, accion, campo, valor_nuevo, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (puesto_numero, tecnico_id, tecnico_nombre, accion, campo, valor_nuevo, _now())
+        )
+        await db.commit()
+
+
+async def get_historial_puesto(puesto_numero: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM historial WHERE puesto_numero = ? ORDER BY timestamp DESC",
+            (puesto_numero,)
+        ) as cur:
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_historial_all():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM historial ORDER BY timestamp DESC LIMIT 1000"
+        ) as cur:
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]

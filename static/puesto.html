@@ -6,70 +6,133 @@
 <title>Aquateam Taller — Puesto</title>
 <style>
   :root {
-    --bg: #0d0d0d;
-    --surface: #1a1a1a;
-    --surface2: #242424;
-    --border: #2e2e2e;
-    --accent: #f59e0b;
-    --accent-dim: #92400e;
-    --text: #e5e5e5;
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --surface2: #f4f4f4;
+    --border: #e0e0e0;
+    --accent: #f97316;
+    --accent-dim: #fff3cd;
+    --text: #1a1a1a;
     --text-muted: #737373;
     --danger: #ef4444;
-    --danger-dim: #7f1d1d;
-    --success: #22c55e;
-    --input-bg: #111;
+    --danger-dim: #fee2e2;
+    --warn-bg: #fff3cd;
+    --warn-border: #f97316;
+    --warn-text: #7c3a00;
+    --success: #16a34a;
+    --input-bg: #ffffff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
 
+  /* ── Header ── */
   header {
     background: var(--surface);
     border-bottom: 2px solid var(--accent);
     padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+    display: flex; align-items: center; gap: 12px;
     position: sticky; top: 0; z-index: 100;
     flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
-  .back-link { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
+  .back-link {
+    color: var(--text-muted); text-decoration: none; font-size: 0.8rem;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+    white-space: nowrap; background: var(--surface);
+  }
   .back-link:hover { border-color: var(--accent); color: var(--accent); }
   .puesto-title { font-size: 1.4rem; font-weight: bold; color: var(--accent); letter-spacing: 3px; }
   .dias-badge {
     font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text-muted);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
   }
-  .dias-badge.alert { background: var(--danger-dim); border-color: var(--danger); color: #fca5a5; }
+  .dias-badge.alert { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+  .tecnico-badge {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; color: var(--accent);
+    padding: 4px 10px; border: 1px solid var(--accent);
+    border-radius: 4px; background: #fff7ed;
+  }
+  .btn-cambiar-tecnico {
+    font-size: 0.7rem; color: var(--text-muted); background: none; border: none;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .btn-cambiar-tecnico:hover { color: var(--accent); }
   .save-indicator { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); letter-spacing: 1px; min-width: 120px; text-align: right; }
   .save-indicator.saving { color: var(--accent); }
   .save-indicator.saved { color: var(--success); }
   .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
   .ws-dot.connected { background: var(--success); }
 
+  /* ── PIN Modal ── */
+  #pin-modal {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #pin-modal.hidden { display: none; }
+  .pin-box {
+    background: var(--surface); border-radius: 12px;
+    padding: 32px 28px; width: 320px; max-width: 95vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+  .pin-box.shake {
+    animation: shake 0.4s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  .pin-title { font-size: 1rem; font-weight: bold; color: var(--text); margin-bottom: 6px; letter-spacing: 1px; }
+  .pin-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 24px; }
+  .pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 24px; }
+  .pin-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--surface2);
+    transition: all 0.15s;
+  }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-error { font-size: 0.8rem; color: var(--danger); margin-bottom: 16px; min-height: 20px; }
+  .pin-keypad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .pin-key {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 8px;
+    font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: bold;
+    cursor: pointer; transition: all 0.15s; color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pin-key:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.del { font-size: 1rem; color: var(--text-muted); }
+  .pin-key.confirm {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .pin-key.confirm:hover { background: #ea6c0a; }
+  .pin-key.empty { visibility: hidden; }
+
+  /* ── Main ── */
   main { padding: 20px; max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
   .card-header {
-    background: var(--surface2);
-    padding: 10px 16px;
-    font-size: 0.75rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
+    background: var(--surface2); padding: 10px 16px;
+    font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
   }
-  .card-header .chevron { margin-left: auto; transition: transform 0.2s; }
+  .card-header .chevron { margin-left: auto; transition: transform 0.2s; color: var(--text-muted); }
   .card-body { padding: 16px; }
   .card-body.collapsed { display: none; }
 
@@ -80,21 +143,16 @@
   .field { display: flex; flex-direction: column; gap: 5px; }
   label { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
   input[type=text], input[type=date], textarea {
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: 'Courier New', monospace;
-    font-size: 1rem;
-    padding: 10px 12px;
-    width: 100%;
-    transition: border-color 0.2s;
+    background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text);
+    font-family: 'Courier New', monospace; font-size: 1rem;
+    padding: 10px 12px; width: 100%; transition: border-color 0.2s;
     -webkit-appearance: none;
   }
   input[type=text]:focus, input[type=date]:focus, textarea:focus {
-    outline: none; border-color: var(--accent);
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
   }
-  input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+  input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.5; }
   textarea { resize: vertical; min-height: 80px; }
 
   .toggle-row {
@@ -104,7 +162,6 @@
   .toggle-row:last-child { border-bottom: none; }
   .toggle-label { font-size: 0.9rem; }
 
-  /* Toggle switch */
   .switch { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider {
@@ -114,12 +171,12 @@
   .slider:before {
     content: ''; position: absolute;
     height: 20px; width: 20px; left: 3px; bottom: 3px;
-    background: var(--text-muted); border-radius: 50%; transition: 0.3s;
+    background: #fff; border-radius: 50%; transition: 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-  input:checked + .slider { background: var(--accent-dim); }
-  input:checked + .slider:before { transform: translateX(22px); background: var(--accent); }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider:before { transform: translateX(22px); }
 
-  /* Checkboxes grandes */
   .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   @media (max-width: 400px) { .check-grid { grid-template-columns: 1fr; } }
   .check-item {
@@ -135,16 +192,16 @@
   .delegacion-row { display: none; }
   .delegacion-row.visible { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
 
-  .btn-row { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
   .btn {
     padding: 12px 20px; border-radius: 4px; border: none; cursor: pointer;
     font-family: 'Courier New', monospace; font-size: 0.9rem; letter-spacing: 1px;
     font-weight: bold; transition: all 0.2s;
   }
-  .btn-primary { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
-  .btn-primary:hover { background: #78350f; }
-  .btn-danger { background: var(--danger-dim); color: #fca5a5; border: 1px solid var(--danger); }
-  .btn-danger:hover { background: #991b1b; }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(249,115,22,0.25); }
+  .btn-primary:hover { background: #ea6c0a; }
+  .btn-danger { background: var(--surface2); color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:hover { background: var(--danger-dim); }
 
   .diag-panels { display: flex; flex-direction: column; gap: 8px; }
   .diag-panel { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
@@ -153,18 +210,67 @@
     display: flex; align-items: center; justify-content: space-between;
     cursor: pointer; user-select: none; font-size: 0.85rem; letter-spacing: 2px;
   }
-  .diag-panel-header:hover { background: #2a2a2a; }
+  .diag-panel-header:hover { background: #ebebeb; }
   .diag-panel-body { padding: 12px; display: none; }
   .diag-panel-body.open { display: block; }
-  .diag-chevron { transition: transform 0.2s; }
-  .diag-panel-body.open ~ .diag-chevron { transform: rotate(180deg); }
+  .diag-chevron { transition: transform 0.2s; color: var(--text-muted); }
+
+  /* ── Historial ── */
+  .hist-list { display: flex; flex-direction: column; }
+  .hist-row {
+    display: grid; grid-template-columns: 120px 100px 1fr;
+    gap: 8px; padding: 8px 12px; font-size: 0.78rem;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .hist-row:nth-child(even) { background: var(--surface2); }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-ts { color: var(--text-muted); white-space: nowrap; }
+  .hist-tecnico { color: var(--accent); font-weight: bold; }
+  .hist-accion { color: var(--text); }
+  .hist-empty { padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+  @media (max-width: 500px) {
+    .hist-row { grid-template-columns: 1fr; gap: 2px; }
+    .hist-ts { font-size: 0.7rem; }
+  }
 </style>
 </head>
 <body>
+
+<!-- PIN Modal -->
+<div id="pin-modal">
+  <div class="pin-box" id="pin-box">
+    <div class="pin-title" id="pin-title">PUESTO — — IDENTIFICACIÓN</div>
+    <div class="pin-subtitle">Introduce tu PIN para acceder</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key confirm" onclick="pinConfirm()">OK</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <a class="back-link" href="/">← TALLER</a>
   <div class="puesto-title" id="puesto-title">PUESTO —</div>
   <div class="dias-badge" id="dias-badge" style="display:none"></div>
+  <div id="tecnico-badge-wrap"></div>
   <div class="save-indicator" id="save-indicator"></div>
   <span class="ws-dot" id="ws-dot" title="WebSocket"></span>
 </header>
@@ -265,7 +371,7 @@
     </div>
   </div>
 
-  <!-- DIAGNÓSTICO TÉCNICO -->
+  <!-- DIAGNÓSTICO -->
   <div class="card">
     <div class="card-header" onclick="toggleCard(this)">
       🛠 DIAGNÓSTICO TÉCNICO
@@ -273,12 +379,9 @@
     </div>
     <div class="card-body">
       <div class="diag-panels">
-
-        <!-- FRÍO -->
         <div class="diag-panel">
           <div class="diag-panel-header" onclick="toggleDiag(this)">
-            🧊 FRÍO
-            <span class="diag-chevron">▾</span>
+            🧊 FRÍO <span class="diag-chevron">▾</span>
           </div>
           <div class="diag-panel-body">
             <div class="check-grid">
@@ -288,12 +391,9 @@
             </div>
           </div>
         </div>
-
-        <!-- ELÉCTRICO -->
         <div class="diag-panel">
           <div class="diag-panel-header" onclick="toggleDiag(this)">
-            ⚡ ELÉCTRICO
-            <span class="diag-chevron">▾</span>
+            ⚡ ELÉCTRICO <span class="diag-chevron">▾</span>
           </div>
           <div class="diag-panel-body">
             <div class="check-grid">
@@ -305,12 +405,9 @@
             </div>
           </div>
         </div>
-
-        <!-- AGUA -->
         <div class="diag-panel">
           <div class="diag-panel-header" onclick="toggleDiag(this)">
-            💧 AGUA FRÍA / AGUA CON GAS
-            <span class="diag-chevron">▾</span>
+            💧 AGUA FRÍA / AGUA CON GAS <span class="diag-chevron">▾</span>
           </div>
           <div class="diag-panel-body">
             <div class="check-grid">
@@ -321,7 +418,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -331,23 +427,168 @@
     <button class="btn btn-primary" onclick="saveNow()">💾 GUARDAR AHORA</button>
     <button class="btn btn-danger" onclick="limpiarPuesto()">🗑 LIMPIAR PUESTO</button>
   </div>
+
+  <!-- HISTORIAL -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      📋 HISTORIAL DE ESTE PUESTO
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body" id="hist-card-body">
+      <div class="hist-list" id="hist-list">
+        <div class="hist-empty">Cargando historial...</div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
 const numero = parseInt(location.pathname.split('/').pop());
 document.getElementById('puesto-title').textContent = `PUESTO ${String(numero).padStart(2,'0')}`;
+document.getElementById('pin-title').textContent = `PUESTO ${String(numero).padStart(2,'0')} — IDENTIFICACIÓN`;
 
-// Campos de texto y sus IDs
-const TEXT_FIELDS = ['nombre_cliente','es_comercial','delegacion','fecha_entrada','telefono',
-  'nombre_equipo','numero_serie','codigo_barras','descripcion_problema'];
-const BOOL_FIELDS = ['es_comercial','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
+// ── PIN Modal ─────────────────────────────────────────────────────────────────
+let pinBuffer = '';
+let tecnicoActual = null;
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`dot-${i}`).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function pinKey(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  if (pinBuffer.length === 4) setTimeout(pinConfirm, 100);
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+async function pinConfirm() {
+  if (pinBuffer.length < 4) {
+    document.getElementById('pin-error').textContent = 'Introduce 4 dígitos';
+    return;
+  }
+  const res = await fetch('/api/auth/pin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin: pinBuffer })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    tecnicoActual = data.tecnico;
+    sessionStorage.setItem(`tecnico_puesto_${numero}`, JSON.stringify(tecnicoActual));
+    document.getElementById('pin-modal').classList.add('hidden');
+    renderTecnicoBadge();
+    // Registrar entrada en historial
+    await fetch('/api/historial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        puesto_numero: numero,
+        tecnico_id: tecnicoActual.id,
+        tecnico_nombre: tecnicoActual.nombre,
+        accion: 'Entró al puesto',
+      })
+    });
+    loadHistorial();
+  } else {
+    pinBuffer = '';
+    updatePinDots();
+    document.getElementById('pin-error').textContent = 'PIN incorrecto';
+    const box = document.getElementById('pin-box');
+    box.classList.remove('shake');
+    void box.offsetWidth;
+    box.classList.add('shake');
+  }
+}
+
+// Soporte teclado físico para PIN
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('pin-modal').classList.contains('hidden')) return;
+  if (e.key >= '0' && e.key <= '9') pinKey(e.key);
+  else if (e.key === 'Backspace') pinDel();
+  else if (e.key === 'Enter') pinConfirm();
+});
+
+function renderTecnicoBadge() {
+  const wrap = document.getElementById('tecnico-badge-wrap');
+  if (!tecnicoActual) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="tecnico-badge">
+      👤 ${tecnicoActual.nombre}
+      <button class="btn-cambiar-tecnico" onclick="cambiarTecnico()">cambiar</button>
+    </div>
+  `;
+}
+
+function cambiarTecnico() {
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-modal').classList.remove('hidden');
+}
+
+function checkSession() {
+  const stored = sessionStorage.getItem(`tecnico_puesto_${numero}`);
+  if (stored) {
+    try {
+      tecnicoActual = JSON.parse(stored);
+      document.getElementById('pin-modal').classList.add('hidden');
+      renderTecnicoBadge();
+      return true;
+    } catch {}
+  }
+  return false;
+}
+
+// ── Campos y snapshot ─────────────────────────────────────────────────────────
+const BOOL_FIELDS = [
+  'es_comercial','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
   'diag_frio_termostato','diag_frio_condensador','diag_frio_gas',
   'diag_elec_agitador','diag_elec_cableria','diag_elec_termostato','diag_elec_compresor','diag_elec_botonera',
-  'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador'];
+  'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador',
+];
 
+const FIELD_LABELS = {
+  nombre_cliente: 'Cliente',
+  telefono: 'Teléfono',
+  delegacion: 'Delegación',
+  es_comercial: 'Tipo comercial',
+  fecha_entrada: 'Fecha de entrada',
+  nombre_equipo: 'Equipo',
+  numero_serie: 'Número de serie',
+  codigo_barras: 'Código de barras',
+  descripcion_problema: 'Descripción del problema',
+  check_electrico: 'Problema eléctrico',
+  check_botones: 'Botones',
+  check_no_enfria: 'No enfría',
+  check_perdida_agua: 'Pérdida de agua',
+  diag_frio_termostato: 'Termostato (Frío)',
+  diag_frio_condensador: 'Condensador (Frío)',
+  diag_frio_gas: 'Gas (Frío)',
+  diag_elec_agitador: 'Agitador en corto (Eléctrico)',
+  diag_elec_cableria: 'Cablería (Eléctrico)',
+  diag_elec_termostato: 'Termostato (Eléctrico)',
+  diag_elec_compresor: 'Compresor (Eléctrico)',
+  diag_elec_botonera: 'Botonera (Eléctrico)',
+  diag_agua_pin_electrico: 'Pin eléctrico (Agua)',
+  diag_agua_banco_hielo: 'Banco de hielo (Agua)',
+  diag_agua_bomba_laton: 'Bomba de latón (Agua)',
+  diag_agua_condensador: 'Condensador (Agua)',
+};
+
+let snapshot = {};
 let focusedField = null;
 let debounceTimer = null;
-let currentData = {};
 
 document.querySelectorAll('input, textarea').forEach(el => {
   el.addEventListener('focus', () => focusedField = el.id);
@@ -359,14 +600,37 @@ function getFormData() {
   document.querySelectorAll('input[type=text], input[type=date], textarea').forEach(el => {
     data[el.id] = el.value;
   });
-  document.querySelectorAll('input[type=checkbox]').forEach(el => {
-    data[el.id] = el.checked ? 1 : 0;
+  BOOL_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.checked ? 1 : 0;
   });
   return data;
 }
 
+function detectCambios(prev, curr) {
+  const cambios = [];
+  for (const [key, label] of Object.entries(FIELD_LABELS)) {
+    const oldVal = prev[key];
+    const newVal = curr[key];
+    if (oldVal === undefined || newVal === undefined) continue;
+    if (String(oldVal) === String(newVal)) continue;
+
+    if (BOOL_FIELDS.includes(key)) {
+      cambios.push(newVal ? `Marcado: ${label}` : `Desmarcado: ${label}`);
+    } else if (key === 'nombre_cliente' && newVal) {
+      cambios.push(`Cliente actualizado: ${newVal}`);
+    } else if (key === 'nombre_equipo' && newVal) {
+      cambios.push(`Equipo actualizado: ${newVal}`);
+    } else if (newVal) {
+      cambios.push(`${label} actualizado`);
+    } else {
+      cambios.push(`${label} borrado`);
+    }
+  }
+  return cambios;
+}
+
 function fillForm(p, skipFocused = false) {
-  currentData = p;
   ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(id => {
     if (skipFocused && focusedField === id) return;
     const el = document.getElementById(id);
@@ -402,17 +666,27 @@ function setSaveStatus(state) {
 
 async function save() {
   setSaveStatus('saving');
-  const data = getFormData();
+  const curr = getFormData();
+  const cambios = detectCambios(snapshot, curr);
+
+  const payload = {
+    ...curr,
+    tecnico_id: tecnicoActual ? tecnicoActual.id : null,
+    tecnico_nombre: tecnicoActual ? tecnicoActual.nombre : 'Desconocido',
+    cambios,
+  };
+
   try {
     const res = await fetch(`/api/puesto/${numero}`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-    currentData = await res.json();
+    await res.json();
+    snapshot = { ...curr };
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus(''), 2000);
-    updateDiasBadge(currentData.fecha_entrada);
+    updateDiasBadge(curr.fecha_entrada);
   } catch {
     setSaveStatus('');
   }
@@ -433,10 +707,17 @@ async function limpiarPuesto() {
   const empty = {};
   ['nombre_cliente','delegacion','fecha_entrada','telefono','nombre_equipo','numero_serie','codigo_barras','descripcion_problema'].forEach(k => empty[k] = '');
   BOOL_FIELDS.forEach(k => empty[k] = 0);
+  const payload = {
+    ...empty,
+    tecnico_id: tecnicoActual ? tecnicoActual.id : null,
+    tecnico_nombre: tecnicoActual ? tecnicoActual.nombre : 'Desconocido',
+    cambios: ['Puesto limpiado'],
+  };
   await fetch(`/api/puesto/${numero}`, {
-    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(empty)
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
   });
-  fillForm({...empty, numero});
+  fillForm({ ...empty, numero });
+  snapshot = { ...empty };
   setSaveStatus('saved');
   setTimeout(() => setSaveStatus(''), 2000);
 }
@@ -460,13 +741,37 @@ function toggleDiag(header) {
   chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
 }
 
-// Auto-save on any input change
 document.querySelectorAll('input, textarea').forEach(el => {
   el.addEventListener('change', scheduleAutoSave);
   el.addEventListener('input', scheduleAutoSave);
 });
 
-// Load data
+// ── Historial ─────────────────────────────────────────────────────────────────
+function fmtTs(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  } catch { return iso; }
+}
+
+async function loadHistorial() {
+  const res = await fetch(`/api/historial/puesto/${numero}`);
+  const rows = await res.json();
+  const list = document.getElementById('hist-list');
+  if (!rows.length) {
+    list.innerHTML = '<div class="hist-empty">Sin entradas de historial todavía.</div>';
+    return;
+  }
+  list.innerHTML = rows.map(r => `
+    <div class="hist-row">
+      <span class="hist-ts">${fmtTs(r.timestamp)}</span>
+      <span class="hist-tecnico">${r.tecnico_nombre || '—'}</span>
+      <span class="hist-accion">${r.accion || ''}</span>
+    </div>
+  `).join('');
+}
+
+// ── Carga inicial ─────────────────────────────────────────────────────────────
 async function load() {
   const res = await fetch(`/api/puesto/${numero}`);
   const p = await res.json();
@@ -474,9 +779,10 @@ async function load() {
   if (!p.fecha_entrada) {
     document.getElementById('fecha_entrada').value = new Date().toISOString().slice(0,10);
   }
+  snapshot = getFormData();
 }
 
-// WebSocket
+// ── WebSocket ─────────────────────────────────────────────────────────────────
 let ws, wsRetry = 1000;
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -491,11 +797,16 @@ function connectWS() {
       if (msg.type === 'puesto_updated' && msg.numero === numero) {
         fillForm(msg.data, true);
       }
+      if (msg.type === 'historial_updated' && msg.puesto_numero === numero) {
+        loadHistorial();
+      }
     } catch {}
   };
 }
 
+checkSession();
 load();
+loadHistorial();
 connectWS();
 </script>
 </body>

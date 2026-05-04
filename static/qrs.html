@@ -7,11 +7,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root {
-    --bg: #0d0d0d;
-    --surface: #1a1a1a;
-    --border: #2e2e2e;
-    --accent: #f59e0b;
-    --text: #e5e5e5;
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --border: #e0e0e0;
+    --accent: #f97316;
+    --text: #1a1a1a;
     --text-muted: #737373;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,26 +21,26 @@
     background: var(--surface);
     border-bottom: 2px solid var(--accent);
     padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
   .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; }
-  .nav-links { display: flex; gap: 12px; }
+  .nav-links { display: flex; gap: 8px; }
   .nav-links a {
-    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
-    padding: 6px 14px; border: 1px solid var(--border); border-radius: 4px; transition: all 0.2s;
+    color: var(--text-muted); text-decoration: none; font-size: 0.8rem;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.2s; background: var(--surface);
   }
   .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
 
   .btn-print {
-    background: var(--accent); color: #000; border: none;
+    background: var(--accent); color: #fff; border: none;
     padding: 10px 20px; border-radius: 4px; font-family: 'Courier New', monospace;
     font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
   }
-  .btn-print:hover { background: #d97706; }
+  .btn-print:hover { background: #ea6c0a; }
 
   main { padding: 24px 20px; max-width: 1200px; margin: 0 auto; }
   .section-title {
@@ -60,31 +60,41 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
+  .qr-item.admin-item { border-color: var(--text-muted); border-style: dashed; }
   .qr-item.stock-item { border-color: var(--accent); }
 
-  .qr-canvas { background: #fff; padding: 8px; border-radius: 4px; }
+  .qr-canvas { background: #fff; padding: 8px; border-radius: 4px; border: 1px solid var(--border); }
   .qr-label {
     font-size: 1.4rem; font-weight: bold; color: var(--accent);
     letter-spacing: 3px; text-align: center;
   }
   .qr-sublabel { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1px; text-align: center; }
+  .admin-badge {
+    font-size: 0.6rem; background: var(--text-muted); color: #fff;
+    padding: 2px 6px; border-radius: 3px; letter-spacing: 1px;
+  }
+
+  .qr-section-header {
+    grid-column: 1 / -1;
+    font-size: 0.7rem; color: var(--text-muted); letter-spacing: 3px;
+    text-transform: uppercase; padding: 12px 0 4px;
+    border-top: 1px solid var(--border); margin-top: 8px;
+  }
+  .qr-section-header:first-child { border-top: none; margin-top: 0; padding-top: 0; }
 
   @media print {
     header, .btn-print { display: none !important; }
-    body { background: #fff; color: #000; }
+    body { background: #fff; }
     main { padding: 8px; }
     .section-title { color: #666; border-color: #ccc; }
-    .qr-item {
-      background: #fff; border: 1px solid #ccc;
-      break-inside: avoid;
-    }
+    .qr-item { background: #fff; border: 1px solid #ccc; break-inside: avoid; box-shadow: none; }
     .qr-label { color: #000; }
     .qr-sublabel { color: #666; }
+    .qr-section-header { color: #999; border-color: #ddd; }
+    .admin-badge { background: #999; }
     .qr-grid { gap: 12px; }
   }
 </style>
@@ -100,7 +110,7 @@
 </header>
 
 <main>
-  <div class="section-title">QR POR PUESTO (4–20) + STOCK GUARDIAS</div>
+  <div class="section-title">QR POR PUESTO (4–20) + PÁGINAS DE GESTIÓN</div>
   <div class="qr-grid" id="qr-grid"></div>
 </main>
 
@@ -108,7 +118,14 @@
 const base = `${location.protocol}//${location.host}`;
 const grid = document.getElementById('qr-grid');
 
-function makeQR(url, label, sublabel, extraClass = '') {
+function addSectionHeader(text) {
+  const h = document.createElement('div');
+  h.className = 'qr-section-header';
+  h.textContent = text;
+  grid.appendChild(h);
+}
+
+function makeQR(url, label, sublabel, extraClass = '', adminBadge = false) {
   const item = document.createElement('div');
   item.className = `qr-item${extraClass ? ' ' + extraClass : ''}`;
 
@@ -126,29 +143,35 @@ function makeQR(url, label, sublabel, extraClass = '') {
   item.appendChild(canvas);
   item.appendChild(labelEl);
   item.appendChild(subEl);
+
+  if (adminBadge) {
+    const badge = document.createElement('div');
+    badge.className = 'admin-badge';
+    badge.textContent = 'SOLO ADMIN';
+    item.appendChild(badge);
+  }
+
   grid.appendChild(item);
 
   new QRCode(canvas, {
     text: url,
-    width: 128,
-    height: 128,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
+    width: 128, height: 128,
+    colorDark: '#000000', colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M,
   });
 }
 
 // Puestos 4–20
+addSectionHeader('PUESTOS DE TRABAJO');
 for (let n = 4; n <= 20; n++) {
-  makeQR(
-    `${base}/puesto/${n}`,
-    String(n).padStart(2, '0'),
-    `PUESTO ${n}`
-  );
+  makeQR(`${base}/puesto/${n}`, String(n).padStart(2, '0'), `PUESTO ${n}`);
 }
 
-// Stock guardias
+// Gestión
+addSectionHeader('PÁGINAS DE GESTIÓN');
 makeQR(`${base}/stock`, '📦', 'STOCK GUARDIAS', 'stock-item');
+makeQR(`${base}/historial`, '📋', 'HISTORIAL', 'admin-item', true);
+makeQR(`${base}/tecnicos`, '⚙️', 'TÉCNICOS', 'admin-item', true);
 </script>
 </body>
 </html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — Historial</title>
+<style>
+  :root {
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --surface2: #f4f4f4;
+    --border: #e0e0e0;
+    --accent: #f97316;
+    --text: #1a1a1a;
+    --text-muted: #737373;
+    --danger: #ef4444;
+    --success: #16a34a;
+    --input-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 2px solid var(--accent);
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    flex-wrap: wrap;
+  }
+  .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.8rem;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.2s; background: var(--surface);
+  }
+  .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 6px; }
+  .ws-dot.connected { background: var(--success); }
+
+  main { padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
+
+  .section-title {
+    font-size: 0.75rem; color: var(--text-muted); letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Filtros */
+  .filters {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+  .filter-group label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+  select, input[type=date] {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-family: 'Courier New', monospace; font-size: 0.85rem;
+    padding: 7px 10px; transition: border-color 0.2s;
+  }
+  select:focus, input[type=date]:focus { outline: none; border-color: var(--accent); }
+  .btn-reset {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text-muted); font-family: 'Courier New', monospace; font-size: 0.8rem;
+    padding: 7px 14px; cursor: pointer; align-self: flex-end; transition: all 0.2s;
+  }
+  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  .results-count {
+    font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px;
+  }
+
+  /* Tabla */
+  .hist-table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2); padding: 10px 14px;
+    font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-muted); text-align: left; border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--surface2); }
+  tbody td { padding: 9px 14px; font-size: 0.82rem; vertical-align: top; }
+  .td-ts { color: var(--text-muted); white-space: nowrap; }
+  .td-puesto {
+    font-weight: bold; color: var(--accent); font-size: 1rem;
+    font-family: 'Courier New', monospace;
+  }
+  .td-tecnico { color: var(--text); font-weight: bold; }
+  .td-accion { color: var(--text); }
+
+  .empty-row td {
+    text-align: center; color: var(--text-muted); padding: 32px;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 600px) {
+    thead { display: none; }
+    tbody tr { display: block; padding: 10px 0; border-bottom: 2px solid var(--border); }
+    tbody td { display: block; padding: 3px 14px; border: none; }
+    tbody td::before { content: attr(data-label) ': '; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .td-puesto { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AQUATEAM <span>HISTORIAL DE TALLER</span></div>
+  <div class="nav-links">
+    <a href="/">← TALLER</a>
+    <a href="/tecnicos">⚙️ TÉCNICOS</a>
+  </div>
+  <div style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">
+    <span class="ws-dot" id="ws-dot"></span><span id="ws-status">Conectando...</span>
+  </div>
+</header>
+
+<main>
+  <div class="section-title">REGISTRO DE ACTIVIDAD — TODOS LOS PUESTOS</div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Puesto</label>
+      <select id="f-puesto" onchange="applyFilters()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Técnico</label>
+      <select id="f-tecnico" onchange="applyFilters()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Fecha (desde)</label>
+      <input type="date" id="f-fecha-desde" oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Fecha (hasta)</label>
+      <input type="date" id="f-fecha-hasta" oninput="applyFilters()">
+    </div>
+    <button class="btn-reset" onclick="resetFilters()">✕ Limpiar filtros</button>
+  </div>
+
+  <div class="results-count" id="results-count"></div>
+
+  <div class="hist-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha / Hora</th>
+          <th>Puesto</th>
+          <th>Técnico</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="hist-body">
+        <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+let allRows = [];
+let tecnicosSet = new Set();
+
+function fmtTs(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch { return iso; }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadHistorial() {
+  const res = await fetch('/api/historial');
+  allRows = await res.json();
+  buildFilters();
+  applyFilters();
+}
+
+function buildFilters() {
+  // Puestos
+  const puestos = [...new Set(allRows.map(r => r.puesto_numero).filter(Boolean))].sort((a,b) => a-b);
+  const selPuesto = document.getElementById('f-puesto');
+  const prevPuesto = selPuesto.value;
+  selPuesto.innerHTML = '<option value="">Todos</option>' +
+    puestos.map(p => `<option value="${p}">${String(p).padStart(2,'0')}</option>`).join('');
+  selPuesto.value = prevPuesto;
+
+  // Técnicos
+  tecnicosSet = new Set(allRows.map(r => r.tecnico_nombre).filter(Boolean));
+  const selTec = document.getElementById('f-tecnico');
+  const prevTec = selTec.value;
+  selTec.innerHTML = '<option value="">Todos</option>' +
+    [...tecnicosSet].sort().map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  selTec.value = prevTec;
+}
+
+function applyFilters() {
+  const fPuesto = document.getElementById('f-puesto').value;
+  const fTecnico = document.getElementById('f-tecnico').value;
+  const fDesde = document.getElementById('f-fecha-desde').value;
+  const fHasta = document.getElementById('f-fecha-hasta').value;
+
+  let filtered = allRows;
+
+  if (fPuesto) filtered = filtered.filter(r => String(r.puesto_numero) === fPuesto);
+  if (fTecnico) filtered = filtered.filter(r => r.tecnico_nombre === fTecnico);
+  if (fDesde) filtered = filtered.filter(r => r.timestamp && r.timestamp.slice(0,10) >= fDesde);
+  if (fHasta) filtered = filtered.filter(r => r.timestamp && r.timestamp.slice(0,10) <= fHasta);
+
+  renderRows(filtered);
+  const total = document.getElementById('results-count');
+  total.textContent = filtered.length === allRows.length
+    ? `${allRows.length} entradas en total`
+    : `${filtered.length} de ${allRows.length} entradas`;
+}
+
+function resetFilters() {
+  document.getElementById('f-puesto').value = '';
+  document.getElementById('f-tecnico').value = '';
+  document.getElementById('f-fecha-desde').value = '';
+  document.getElementById('f-fecha-hasta').value = '';
+  applyFilters();
+}
+
+function renderRows(rows) {
+  const tbody = document.getElementById('hist-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No hay entradas que coincidan con los filtros.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="td-ts" data-label="Fecha">${fmtTs(r.timestamp)}</td>
+      <td class="td-puesto" data-label="Puesto">${String(r.puesto_numero || '—').padStart(2,'0')}</td>
+      <td class="td-tecnico" data-label="Técnico">${escHtml(r.tecnico_nombre || '—')}</td>
+      <td class="td-accion" data-label="Acción">${escHtml(r.accion || '')}</td>
+    </tr>
+  `).join('');
+}
+
+// WebSocket — recarga al recibir cualquier historial_updated
+let ws, wsRetry = 1000;
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  const dot = document.getElementById('ws-dot');
+  const status = document.getElementById('ws-status');
+  ws.onopen = () => { dot.classList.add('connected'); status.textContent = 'En línea'; wsRetry = 1000; };
+  ws.onclose = () => { dot.classList.remove('connected'); status.textContent = 'Reconectando...'; setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'historial_updated') loadHistorial();
+    } catch {}
+  };
+}
+
+loadHistorial();
+connectWS();
+</script>
+</body>
+</html>

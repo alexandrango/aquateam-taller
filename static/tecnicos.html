@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquateam Taller — Gestión de Técnicos</title>
+<style>
+  :root {
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --surface2: #f4f4f4;
+    --border: #e0e0e0;
+    --accent: #f97316;
+    --text: #1a1a1a;
+    --text-muted: #737373;
+    --danger: #ef4444;
+    --danger-dim: #fee2e2;
+    --success: #16a34a;
+    --success-dim: #dcfce7;
+    --input-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 2px solid var(--accent);
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; }
+  .nav-links { display: flex; gap: 8px; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.8rem;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.2s; background: var(--surface);
+  }
+  .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
+
+  main { padding: 24px 20px; max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+  .admin-banner {
+    background: #fff7ed; border: 1px solid var(--accent); border-radius: 8px;
+    padding: 12px 16px; font-size: 0.85rem; color: #7c3a00; letter-spacing: 1px;
+  }
+
+  .section-title {
+    font-size: 0.75rem; color: var(--text-muted); letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 16px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .card-body { padding: 20px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+  input[type=text], input[type=password] {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-family: 'Courier New', monospace; font-size: 1rem;
+    padding: 10px 12px; width: 100%; transition: border-color 0.2s;
+  }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+  .error-msg { font-size: 0.8rem; color: var(--danger); margin-top: -8px; margin-bottom: 8px; min-height: 18px; }
+
+  .btn {
+    padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer;
+    font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: bold;
+    letter-spacing: 1px; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(249,115,22,0.25); }
+  .btn-primary:hover { background: #ea6c0a; }
+  .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+  .btn-edit { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-del { background: var(--surface2); color: var(--danger); border: 1px solid var(--border); }
+  .btn-del:hover { background: var(--danger-dim); border-color: var(--danger); }
+  .btn-save { background: var(--success-dim); color: var(--success); border: 1px solid var(--success); }
+  .btn-save:hover { background: #bbf7d0; }
+  .btn-cancel { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-cancel:hover { background: #e8e8e8; }
+
+  /* Lista de técnicos */
+  .tecnico-item {
+    border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px;
+    overflow: hidden; background: var(--surface);
+  }
+  .tecnico-item:last-child { margin-bottom: 0; }
+  .tecnico-row {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    flex-wrap: wrap;
+  }
+  .tecnico-nombre { font-weight: bold; font-size: 1rem; flex: 1; min-width: 120px; }
+  .tecnico-pin {
+    font-size: 0.85rem; color: var(--text-muted); letter-spacing: 4px;
+    background: var(--surface2); padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .tecnico-estado {
+    font-size: 0.7rem; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px;
+  }
+  .tecnico-estado.activo { background: var(--success-dim); color: var(--success); }
+  .tecnico-estado.inactivo { background: var(--danger-dim); color: var(--danger); }
+  .tecnico-actions { display: flex; gap: 6px; }
+
+  /* Formulario de edición inline */
+  .tecnico-edit-form {
+    display: none; padding: 14px 16px; border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tecnico-edit-form.open { display: block; }
+  .edit-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; }
+  @media (max-width: 500px) { .edit-form-grid { grid-template-columns: 1fr; } }
+  .edit-field { display: flex; flex-direction: column; gap: 4px; }
+  .edit-field label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+  .edit-field input { padding: 8px 10px; font-size: 0.9rem; }
+  .edit-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+  .empty-list { text-align: center; color: var(--text-muted); padding: 24px; font-size: 0.9rem; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--text); color: #fff; padding: 12px 20px;
+    border-radius: 6px; font-size: 0.85rem; letter-spacing: 1px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999;
+    animation: slideIn 0.2s ease; display: none;
+  }
+  .toast.ok { background: var(--success); }
+  .toast.err { background: var(--danger); }
+  .toast.visible { display: block; }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AQUATEAM <span>GESTIÓN DE TÉCNICOS</span></div>
+  <div class="nav-links">
+    <a href="/">← TALLER</a>
+    <a href="/historial">📋 HISTORIAL</a>
+  </div>
+</header>
+
+<main>
+  <div class="admin-banner">⚙️ Gestión de Técnicos — Solo Administradores</div>
+
+  <!-- AÑADIR TÉCNICO -->
+  <div class="card">
+    <div class="card-body">
+      <div class="section-title">AÑADIR NUEVO TÉCNICO</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" id="new-nombre" placeholder="Nombre del técnico" maxlength="60">
+        </div>
+        <div class="field">
+          <label>PIN (4 dígitos)</label>
+          <input type="password" id="new-pin" placeholder="••••" maxlength="4" inputmode="numeric">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Confirmar PIN</label>
+          <input type="password" id="new-pin2" placeholder="••••" maxlength="4" inputmode="numeric">
+        </div>
+      </div>
+      <div class="error-msg" id="new-error"></div>
+      <button class="btn btn-primary" onclick="crearTecnico()">➕ AÑADIR TÉCNICO</button>
+    </div>
+  </div>
+
+  <!-- LISTA TÉCNICOS -->
+  <div>
+    <div class="section-title">TÉCNICOS REGISTRADOS</div>
+    <div id="tecnicos-list"><div class="empty-list">Cargando...</div></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let tecnicosData = [];
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} visible`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+async function loadTecnicos() {
+  const res = await fetch('/api/tecnicos');
+  tecnicosData = await res.json();
+  renderTecnicos();
+}
+
+function renderTecnicos() {
+  const list = document.getElementById('tecnicos-list');
+  if (!tecnicosData.length) {
+    list.innerHTML = '<div class="empty-list">No hay técnicos registrados todavía.</div>';
+    return;
+  }
+  list.innerHTML = tecnicosData.map(t => `
+    <div class="tecnico-item" id="tec-${t.id}">
+      <div class="tecnico-row">
+        <span class="tecnico-nombre">${escHtml(t.nombre)}</span>
+        <span class="tecnico-pin">••••</span>
+        <span class="tecnico-estado ${t.activo ? 'activo' : 'inactivo'}">${t.activo ? 'ACTIVO' : 'INACTIVO'}</span>
+        <div class="tecnico-actions">
+          <button class="btn btn-sm btn-edit" onclick="toggleEdit(${t.id})">✏️ Editar</button>
+          <button class="btn btn-sm btn-del" onclick="eliminarTecnico(${t.id}, '${escHtml(t.nombre)}')">🗑</button>
+        </div>
+      </div>
+      <div class="tecnico-edit-form" id="edit-${t.id}">
+        <div class="edit-form-grid">
+          <div class="edit-field">
+            <label>Nombre</label>
+            <input type="text" id="edit-nombre-${t.id}" value="${escHtml(t.nombre)}" maxlength="60">
+          </div>
+          <div class="edit-field">
+            <label>Nuevo PIN</label>
+            <input type="password" id="edit-pin-${t.id}" placeholder="••••" maxlength="4" inputmode="numeric">
+          </div>
+          <div class="edit-field">
+            <label>Confirmar PIN</label>
+            <input type="password" id="edit-pin2-${t.id}" placeholder="••••" maxlength="4" inputmode="numeric">
+          </div>
+        </div>
+        <div class="error-msg" id="edit-error-${t.id}"></div>
+        <div class="edit-actions">
+          <button class="btn btn-sm btn-save" onclick="guardarEdicion(${t.id})">✓ GUARDAR</button>
+          <button class="btn btn-sm btn-cancel" onclick="toggleEdit(${t.id})">CANCELAR</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleEdit(id) {
+  const form = document.getElementById(`edit-${id}`);
+  form.classList.toggle('open');
+  document.getElementById(`edit-error-${id}`).textContent = '';
+}
+
+async function crearTecnico() {
+  const nombre = document.getElementById('new-nombre').value.trim();
+  const pin = document.getElementById('new-pin').value.trim();
+  const pin2 = document.getElementById('new-pin2').value.trim();
+  const errEl = document.getElementById('new-error');
+
+  if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'El PIN debe ser exactamente 4 dígitos numéricos.'; return; }
+  if (pin !== pin2) { errEl.textContent = 'Los PINs no coinciden.'; return; }
+  errEl.textContent = '';
+
+  const res = await fetch('/api/tecnicos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, pin })
+  });
+
+  if (res.ok) {
+    document.getElementById('new-nombre').value = '';
+    document.getElementById('new-pin').value = '';
+    document.getElementById('new-pin2').value = '';
+    showToast('Técnico creado correctamente', 'ok');
+    loadTecnicos();
+  } else {
+    const err = await res.json();
+    errEl.textContent = err.detail || 'Error al crear técnico.';
+  }
+}
+
+async function guardarEdicion(id) {
+  const nombre = document.getElementById(`edit-nombre-${id}`).value.trim();
+  const pin = document.getElementById(`edit-pin-${id}`).value.trim();
+  const pin2 = document.getElementById(`edit-pin2-${id}`).value.trim();
+  const errEl = document.getElementById(`edit-error-${id}`);
+
+  if (!nombre) { errEl.textContent = 'El nombre es obligatorio.'; return; }
+  if (!pin) { errEl.textContent = 'Introduce el nuevo PIN.'; return; }
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = 'El PIN debe ser exactamente 4 dígitos numéricos.'; return; }
+  if (pin !== pin2) { errEl.textContent = 'Los PINs no coinciden.'; return; }
+  errEl.textContent = '';
+
+  const t = tecnicosData.find(x => x.id === id);
+  const res = await fetch(`/api/tecnicos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, pin, activo: t ? t.activo : true })
+  });
+
+  if (res.ok) {
+    showToast('Técnico actualizado', 'ok');
+    loadTecnicos();
+  } else {
+    const err = await res.json();
+    errEl.textContent = err.detail || 'Error al actualizar.';
+  }
+}
+
+async function eliminarTecnico(id, nombre) {
+  if (!confirm(`¿Eliminar al técnico "${nombre}"?\nSi tiene historial registrado, se desactivará en lugar de eliminarse.`)) return;
+  const res = await fetch(`/api/tecnicos/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    const data = await res.json();
+    showToast(data.desactivado ? 'Técnico desactivado (tiene historial)' : 'Técnico eliminado', 'ok');
+    loadTecnicos();
+  } else {
+    showToast('Error al eliminar', 'err');
+  }
+}
+
+// Enter en campos de nuevo técnico
+['new-nombre','new-pin','new-pin2'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') crearTecnico(); });
+});
+
+loadTecnicos();
+</script>
+</body>
+</html>

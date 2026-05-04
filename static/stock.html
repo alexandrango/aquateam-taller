@@ -6,17 +6,17 @@
 <title>Aquateam Taller — Stock Guardias</title>
 <style>
   :root {
-    --bg: #0d0d0d;
-    --surface: #1a1a1a;
-    --surface2: #242424;
-    --border: #2e2e2e;
-    --accent: #f59e0b;
-    --text: #e5e5e5;
+    --bg: #f4f4f4;
+    --surface: #ffffff;
+    --surface2: #f4f4f4;
+    --border: #e0e0e0;
+    --accent: #f97316;
+    --text: #1a1a1a;
     --text-muted: #737373;
     --danger: #ef4444;
-    --danger-dim: #7f1d1d;
-    --success: #22c55e;
-    --success-dim: #14532d;
+    --danger-dim: #fee2e2;
+    --success: #16a34a;
+    --success-dim: #dcfce7;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Courier New', Courier, monospace; min-height: 100vh; }
@@ -25,27 +25,25 @@
     background: var(--surface);
     border-bottom: 2px solid var(--accent);
     padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
     position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   .logo { font-size: 1.2rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
   .logo span { color: var(--text-muted); font-size: 0.75rem; display: block; letter-spacing: 1px; }
-  .nav-links { display: flex; gap: 12px; }
+  .nav-links { display: flex; gap: 8px; }
   .nav-links a {
-    color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
-    padding: 6px 14px; border: 1px solid var(--border); border-radius: 4px;
-    transition: all 0.2s; letter-spacing: 1px;
+    color: var(--text-muted); text-decoration: none; font-size: 0.8rem;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.2s; background: var(--surface);
   }
   .nav-links a:hover { border-color: var(--accent); color: var(--accent); }
   .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 6px; }
   .ws-dot.connected { background: var(--success); }
 
   #stock-alert {
-    background: var(--danger-dim); border: 1px solid var(--danger);
-    color: #fca5a5; padding: 10px 20px; text-align: center;
+    background: var(--danger-dim); border-bottom: 1px solid var(--danger);
+    color: #b91c1c; padding: 10px 20px; text-align: center;
     font-size: 0.9rem; letter-spacing: 1px; display: none;
   }
   #stock-alert.visible { display: block; }
@@ -61,7 +59,9 @@
 
   .stock-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 24px; transition: border-color 0.3s;
+    border-radius: 8px; padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: border-color 0.3s;
   }
   .stock-card.ok { border-left: 4px solid var(--success); }
   .stock-card.fail { border-left: 4px solid var(--danger); }
@@ -83,12 +83,12 @@
     background: var(--success-dim); color: var(--success);
     border: 2px solid var(--success);
   }
-  .toggle-btn.on:hover { background: #166534; }
+  .toggle-btn.on:hover { background: #bbf7d0; }
   .toggle-btn.off {
-    background: var(--danger-dim); color: #fca5a5;
+    background: var(--danger-dim); color: var(--danger);
     border: 2px solid var(--danger);
   }
-  .toggle-btn.off:hover { background: #991b1b; }
+  .toggle-btn.off:hover { background: #fecaca; }
 
   .updated-at { font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
 </style>
@@ -98,6 +98,7 @@
   <div class="logo">AQUATEAM <span>STOCK GUARDIAS</span></div>
   <div class="nav-links">
     <a href="/">← TALLER</a>
+    <a href="/historial">📋 HISTORIAL</a>
     <a href="/qrs">🔲 QRs</a>
   </div>
   <div style="font-size:0.75rem; color:var(--text-muted);">
@@ -113,17 +114,12 @@
 </main>
 
 <script>
-const LABELS = {
-  sotobanco: 'Sotobanco',
-  tres_aguas: '3 Aguas',
-  dos_aguas: '2 Aguas',
-};
+const LABELS = { sotobanco: 'Sotobanco', tres_aguas: '3 Aguas', dos_aguas: '2 Aguas' };
 
 function fmtDate(iso) {
   if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-  } catch { return ''; }
+  try { return new Date(iso).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+  catch { return ''; }
 }
 
 function renderStock(lista) {
