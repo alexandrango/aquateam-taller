@@ -162,6 +162,13 @@
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--accent);
   }
+  .badge-propiedad {
+    display: inline-block;
+    background: #dcfce7; border: 1px solid #16a34a; color: #15803d;
+    font-size: 0.62rem; font-weight: bold; padding: 2px 6px;
+    border-radius: 3px; letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .puesto-card.propiedad { border-left: 3px solid #16a34a !important; }
 </style>
 </head>
 <body>
@@ -216,10 +223,11 @@ function renderCard(p) {
 
   const card = document.createElement('a');
   card.href = `/puesto/${p.numero}`;
-  card.className = `puesto-card${isOcup ? ' occupied' : ''}${isAlert ? ' alert' : ''}`;
+  card.className = `puesto-card${isOcup ? ' occupied' : ''}${isAlert ? ' alert' : ''}${p.es_propiedad ? ' propiedad' : ''}`;
   card.dataset.numero = p.numero;
   card.innerHTML = `
     <div class="${isOcup ? 'badge-ocup' : 'badge-libre'}"></div>
+    ${p.es_propiedad ? '<div class="badge-propiedad">★ PROPIEDAD</div>' : ''}
     <div class="puesto-num">${String(p.numero).padStart(2,'0')}</div>
     <div class="puesto-cliente${!isOcup ? ' puesto-libre' : ''}">${p.nombre_cliente || 'Libre'}</div>
     <div class="puesto-equipo">${p.nombre_equipo || '—'}</div>

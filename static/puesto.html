@@ -63,6 +63,14 @@
   .save-indicator.saved { color: var(--success); }
   .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; }
   .ws-dot.connected { background: var(--success); }
+  .propiedad-badge {
+    background: #dcfce7; border: 1px solid #16a34a; color: #15803d;
+    font-size: 0.75rem; font-weight: bold; padding: 4px 10px;
+    border-radius: 4px; letter-spacing: 2px;
+  }
+  .switch-green input:checked + .slider { background: var(--success); }
+  .field-required-error { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
+  .validation-msg { font-size: 0.8rem; color: var(--danger); letter-spacing: 1px; display: none; margin-top: 8px; }
 
   /* ── PIN Modal ── */
   #pin-modal {
@@ -270,6 +278,7 @@
   <a class="back-link" href="/">← TALLER</a>
   <div class="puesto-title" id="puesto-title">PUESTO —</div>
   <div class="dias-badge" id="dias-badge" style="display:none"></div>
+  <div class="propiedad-badge" id="propiedad-badge" style="display:none">★ PROPIEDAD</div>
   <div id="tecnico-badge-wrap"></div>
   <div class="save-indicator" id="save-indicator"></div>
   <span class="ws-dot" id="ws-dot" title="WebSocket"></span>
@@ -304,6 +313,13 @@
         <span class="toggle-label">🔑 ¿Máquina en alquiler?</span>
         <label class="switch">
           <input type="checkbox" id="es_alquiler">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">⭐ ¿Máquina de propiedad?</span>
+        <label class="switch switch-green">
+          <input type="checkbox" id="es_propiedad">
           <span class="slider"></span>
         </label>
       </div>
@@ -357,10 +373,6 @@
         <label class="check-item">
           <input type="checkbox" id="check_electrico">
           <label for="check_electrico">⚡ Problema eléctrico</label>
-        </label>
-        <label class="check-item">
-          <input type="checkbox" id="check_botones">
-          <label for="check_botones">🔘 Botones</label>
         </label>
         <label class="check-item">
           <input type="checkbox" id="check_no_enfria">
@@ -434,6 +446,7 @@
     <button class="btn btn-primary" onclick="saveNow()">💾 GUARDAR AHORA</button>
     <button class="btn btn-danger" onclick="limpiarPuesto()">🗑 LIMPIAR PUESTO</button>
   </div>
+  <div class="validation-msg" id="validation-msg"></div>
 
   <!-- HISTORIAL -->
   <div class="card">
@@ -559,7 +572,7 @@ function checkSession() {
 
 // ── Campos y snapshot ─────────────────────────────────────────────────────────
 const BOOL_FIELDS = [
-  'es_comercial','es_alquiler','check_electrico','check_botones','check_no_enfria','check_perdida_agua',
+  'es_comercial','es_alquiler','es_propiedad','check_electrico','check_no_enfria','check_perdida_agua',
   'diag_frio_termostato','diag_frio_condensador','diag_frio_gas',
   'diag_elec_agitador','diag_elec_cableria','diag_elec_termostato','diag_elec_compresor','diag_elec_botonera',
   'diag_agua_pin_electrico','diag_agua_banco_hielo','diag_agua_bomba_laton','diag_agua_condensador',
@@ -571,13 +584,13 @@ const FIELD_LABELS = {
   delegacion: 'Delegación',
   es_comercial: 'Tipo comercial',
   es_alquiler: 'Máquina en alquiler',
+  es_propiedad: 'Máquina de propiedad',
   fecha_entrada: 'Fecha de entrada',
   nombre_equipo: 'Equipo',
   numero_serie: 'Número de serie',
   codigo_barras: 'Código de barras',
   descripcion_problema: 'Descripción del problema',
   check_electrico: 'Problema eléctrico',
-  check_botones: 'Botones',
   check_no_enfria: 'No enfría',
   check_perdida_agua: 'Pérdida de agua',
   diag_frio_termostato: 'Termostato (Frío)',
@@ -651,6 +664,8 @@ function fillForm(p, skipFocused = false) {
   });
   toggleDelegacion();
   updateDiasBadge(p.fecha_entrada);
+  const propBadge = document.getElementById('propiedad-badge');
+  if (propBadge) propBadge.style.display = p.es_propiedad ? '' : 'none';
 }
 
 function updateDiasBadge(fechaISO) {
@@ -672,7 +687,32 @@ function setSaveStatus(state) {
   else { el.textContent = ''; el.className = 'save-indicator'; }
 }
 
-async function save() {
+const REQUIRED_FIELDS = ['nombre_cliente', 'nombre_equipo', 'fecha_entrada'];
+function validateRequired(showError = false) {
+  const missing = REQUIRED_FIELDS.filter(id => {
+    const el = document.getElementById(id);
+    return !el || !el.value.trim();
+  });
+  REQUIRED_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (missing.includes(id)) el.classList.add('field-required-error');
+    else el.classList.remove('field-required-error');
+  });
+  const msgEl = document.getElementById('validation-msg');
+  if (missing.length && showError) {
+    const labels = missing.map(id => FIELD_LABELS[id] || id);
+    msgEl.textContent = `⚠ Campos obligatorios vacíos: ${labels.join(', ')}`;
+    msgEl.style.display = '';
+    return false;
+  }
+  if (!missing.length) msgEl.style.display = 'none';
+  return missing.length === 0;
+}
+
+async function save(showValidation = false) {
+  if (!validateRequired(showValidation)) return;
+  document.getElementById('validation-msg').style.display = 'none';
   setSaveStatus('saving');
   const curr = getFormData();
   const cambios = detectCambios(snapshot, curr);
@@ -707,7 +747,7 @@ function scheduleAutoSave() {
 
 async function saveNow() {
   clearTimeout(debounceTimer);
-  await save();
+  await save(true);
 }
 
 async function limpiarPuesto() {
@@ -752,6 +792,11 @@ function toggleDiag(header) {
 document.querySelectorAll('input, textarea').forEach(el => {
   el.addEventListener('change', scheduleAutoSave);
   el.addEventListener('input', scheduleAutoSave);
+});
+
+document.getElementById('es_propiedad').addEventListener('change', function() {
+  const badge = document.getElementById('propiedad-badge');
+  if (badge) badge.style.display = this.checked ? '' : 'none';
 });
 
 // ── Historial ─────────────────────────────────────────────────────────────────

@@ -91,6 +91,11 @@ async def init_db():
         except Exception:
             pass  # La columna ya existe
 
+        try:
+            await db.execute("ALTER TABLE puestos ADD COLUMN es_propiedad BOOLEAN DEFAULT 0")
+        except Exception:
+            pass  # La columna ya existe
+
         await db.commit()
 
 
@@ -120,7 +125,7 @@ async def get_puesto(numero: int):
 
 async def update_puesto(numero: int, data: dict):
     allowed = {
-        "nombre_cliente", "es_comercial", "es_alquiler", "delegacion", "fecha_entrada",
+        "nombre_cliente", "es_comercial", "es_alquiler", "es_propiedad", "delegacion", "fecha_entrada",
         "telefono", "nombre_equipo", "numero_serie", "codigo_barras",
         "descripcion_problema", "check_electrico", "check_botones",
         "check_no_enfria", "check_perdida_agua", "diag_frio_termostato",
