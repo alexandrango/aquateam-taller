@@ -150,6 +150,7 @@
 
   .field { display: flex; flex-direction: column; gap: 5px; }
   label { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+  label .req { color: var(--danger); margin-left: 2px; }
   input[type=text], input[type=date], textarea {
     background: var(--input-bg); border: 1px solid var(--border);
     border-radius: 4px; color: var(--text);
@@ -294,17 +295,17 @@
     <div class="card-body">
       <div class="form-row">
         <div class="field">
-          <label>Nombre cliente</label>
+          <label>Nombre cliente <span class="req">*</span></label>
           <input type="text" id="nombre_cliente" placeholder="Nombre del cliente">
         </div>
         <div class="field">
-          <label>Código de cliente</label>
+          <label>Código de cliente <span class="req">*</span></label>
           <input type="text" id="codigo_cliente" placeholder="Cód. cliente">
         </div>
       </div>
       <div class="form-row">
         <div class="field">
-          <label>Teléfono</label>
+          <label>Teléfono <span class="req">*</span></label>
           <input type="text" id="telefono" placeholder="Teléfono de contacto">
         </div>
       </div>
@@ -335,7 +336,7 @@
       </div>
       <div class="form-row" style="margin-top:12px;">
         <div class="field">
-          <label>Fecha de entrada</label>
+          <label>Fecha de entrada <span class="req">*</span></label>
           <input type="date" id="fecha_entrada">
         </div>
       </div>
@@ -351,7 +352,7 @@
     <div class="card-body">
       <div class="form-row full">
         <div class="field">
-          <label>Nombre del equipo</label>
+          <label>Nombre del equipo <span class="req">*</span></label>
           <input type="text" id="nombre_equipo" placeholder="Modelo / tipo de equipo">
         </div>
       </div>
@@ -694,7 +695,7 @@ function setSaveStatus(state) {
   else { el.textContent = ''; el.className = 'save-indicator'; }
 }
 
-const REQUIRED_FIELDS = ['nombre_cliente', 'nombre_equipo', 'fecha_entrada'];
+const REQUIRED_FIELDS = ['nombre_cliente', 'codigo_cliente', 'telefono', 'nombre_equipo', 'fecha_entrada'];
 function validateRequired(showError = false) {
   const missing = REQUIRED_FIELDS.filter(id => {
     const el = document.getElementById(id);
@@ -749,7 +750,7 @@ async function save(showValidation = false) {
 
 function scheduleAutoSave() {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(save, 2000);
+  debounceTimer = setTimeout(() => save(true), 2000);
 }
 
 async function saveNow() {
