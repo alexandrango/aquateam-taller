@@ -764,8 +764,9 @@ function validateRequired(showError = false) {
 }
 
 async function save(showValidation = false) {
-  if (!validateRequired(showValidation)) return;
-  document.getElementById('validation-msg').style.display = 'none';
+  // El autosave (showValidation=false) guarda siempre; el botón manual valida y bloquea si falta algo
+  if (showValidation && !validateRequired(true)) return;
+  if (!showValidation) document.getElementById('validation-msg').style.display = 'none';
   setSaveStatus('saving');
   const curr = getFormData();
   const cambios = detectCambios(snapshot, curr);
@@ -795,7 +796,9 @@ async function save(showValidation = false) {
 
 function scheduleAutoSave() {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => save(true), 2000);
+  // Limpiar mensajes de error mientras el usuario edita
+  document.getElementById('validation-msg').style.display = 'none';
+  debounceTimer = setTimeout(() => save(false), 2000);
 }
 
 async function saveNow() {
