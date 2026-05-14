@@ -943,7 +943,7 @@ document.getElementById('es_propiedad').addEventListener('change', function() {
 function updateCompletarBtn() {
   const btn = document.getElementById('btn-completar');
   if (!btn) return;
-  btn.style.display = tecnicoActual ? '' : 'none';
+  btn.style.display = tecnicoActual ? 'inline-block' : 'none';
 }
 
 function completarReparacion() {
