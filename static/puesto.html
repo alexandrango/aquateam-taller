@@ -763,6 +763,7 @@ function fillForm(p, skipFocused = false) {
   updateDiasBadge(p.fecha_entrada);
   const propBadge = document.getElementById('propiedad-badge');
   if (propBadge) propBadge.style.display = p.es_propiedad ? '' : 'none';
+  updateCompletarBtn();
 }
 
 function updateDiasBadge(fechaISO) {
@@ -939,13 +940,15 @@ document.querySelectorAll('input, textarea').forEach(el => {
 document.getElementById('es_propiedad').addEventListener('change', function() {
   const badge = document.getElementById('propiedad-badge');
   if (badge) badge.style.display = this.checked ? '' : 'none';
+  updateCompletarBtn();
 });
 
 // ── Reparación Completada ─────────────────────────────────────────────────────
 function updateCompletarBtn() {
   const btn = document.getElementById('btn-completar');
   if (!btn) return;
-  btn.style.display = tecnicoActual ? 'inline-block' : 'none';
+  const esPropiedad = !!document.getElementById('es_propiedad')?.checked;
+  btn.style.display = (tecnicoActual && esPropiedad) ? 'inline-block' : 'none';
 }
 
 function completarReparacion() {
