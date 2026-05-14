@@ -1,7 +1,6 @@
 import json
 import os
 from contextlib import asynccontextmanager
-from datetime import date, datetime
 from typing import List
 
 import httpx
@@ -46,82 +45,42 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # ── WhatsApp config ───────────────────────────────────────────────────────────
-WHATSAPP_TOKEN    = os.environ.get("WHATSAPP_TOKEN", "")
-WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID", "")
-WHATSAPP_DEST     = os.environ.get("WHATSAPP_DEST", "34627461015")
-
-CHECK_LABELS = {
-    "check_electrico":    "Problema eléctrico",
-    "check_no_enfria":    "No enfría",
-    "check_perdida_agua": "Pérdida de agua",
-}
+WHATSAPP_DEST = os.environ.get("WHATSAPP_DEST", "34627461015")
 
 
 async def send_whatsapp_notification(puesto_data: dict, tecnico_nombre: str):
-    """Envía notificación WhatsApp al completar una reparación."""
-    problems = [label for key, label in CHECK_LABELS.items() if puesto_data.get(key)]
-    problema_str = ", ".join(problems) if problems else None
+    """Envía notificación WhatsApp vía el gateway propio al completar una reparación."""
+    gateway_url = "https://aquateam-whatsapp-gateway-production.up.railway.app/send-template"
+    destino = os.getenv("WHATSAPP_DEST", "34627461015")
 
-    fecha_entrada = puesto_data.get("fecha_entrada", "")
-    if fecha_entrada:
-        try:
-            fecha_entrada = datetime.strptime(fecha_entrada, "%Y-%m-%d").strftime("%d/%m/%Y")
-        except Exception:
-            pass
+    problemas = []
+    if puesto_data.get("check_electrico"):   problemas.append("Problema eléctrico")
+    if puesto_data.get("check_botones"):     problemas.append("Botones")
+    if puesto_data.get("check_no_enfria"):   problemas.append("No enfría")
+    if puesto_data.get("check_perdida_agua"): problemas.append("Pérdida de agua")
+    problema_texto = ", ".join(problemas) if problemas else ""
+    if puesto_data.get("descripcion_problema"):
+        problema_texto += (" — " if problema_texto else "") + puesto_data["descripcion_problema"]
 
-    today = date.today().strftime("%d/%m/%Y")
-
-    lines = [
-        "🔧 MÁQUINA REPARADA - LISTA PARA ENTREGA",
-        "━━━━━━━━━━━━━━━━━━━━",
-    ]
-    if puesto_data.get("numero"):
-        lines.append(f"📍 Puesto: {puesto_data['numero']}")
-    if puesto_data.get("nombre_cliente"):
-        lines.append(f"👤 Cliente: {puesto_data['nombre_cliente']}")
-    if puesto_data.get("telefono"):
-        lines.append(f"📞 Teléfono: {puesto_data['telefono']}")
-    if puesto_data.get("es_comercial") and puesto_data.get("delegacion"):
-        lines.append(f"🏢 Delegación: {puesto_data['delegacion']}")
-    if puesto_data.get("nombre_equipo"):
-        lines.append(f"🖥️ Equipo: {puesto_data['nombre_equipo']}")
-    if puesto_data.get("numero_serie"):
-        lines.append(f"🔢 Serie: {puesto_data['numero_serie']}")
-    if problema_str:
-        lines.append(f"📋 Problema reportado: {problema_str}")
-    if tecnico_nombre:
-        lines.append(f"🔧 Técnico: {tecnico_nombre}")
-    if fecha_entrada:
-        lines.append(f"📅 Entrada taller: {fecha_entrada}")
-    lines.append(f"📅 Fecha reparación: {today}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
-    lines.append("✅ Pendiente agendar entrega")
+    cliente = puesto_data.get("nombre_cliente", "")
+    codigo  = puesto_data.get("codigo_cliente", "")
+    cliente_completo = f"{cliente} ({codigo})" if codigo else cliente
 
     payload = {
-        "messaging_product": "whatsapp",
-        "to": WHATSAPP_DEST,
-        "type": "text",
-        "text": {"body": "\n".join(lines)},
+        "phone": destino,
+        "template_name": "maquina_reparada",
+        "components": [
+            {"type": "text", "text": cliente_completo or "Sin nombre"},
+            {"type": "text", "text": puesto_data.get("nombre_equipo") or "Sin equipo"},
+            {"type": "text", "text": puesto_data.get("numero_serie") or "Sin serie"},
+            {"type": "text", "text": problema_texto or "Sin descripción"},
+        ],
     }
 
     async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_ID}/messages",
-            headers={
-                "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=10.0,
-        )
-
-    if resp.status_code >= 400:
-        try:
-            err = resp.json()
-            msg = err.get("error", {}).get("message", resp.text)
-        except Exception:
-            msg = resp.text
-        raise Exception(f"WhatsApp API error: {msg}")
+        response = await client.post(gateway_url, json=payload, timeout=10)
+        if response.status_code != 200:
+            raise Exception(f"Gateway error {response.status_code}: {response.text}")
 
     return {"ok": True}
 
