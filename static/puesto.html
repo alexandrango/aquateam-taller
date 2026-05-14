@@ -242,6 +242,72 @@
     .hist-row { grid-template-columns: 1fr; gap: 2px; }
     .hist-ts { font-size: 0.7rem; }
   }
+
+  /* ── Botón Reparación Completada ── */
+  .btn-success {
+    background: #16a34a; color: #fff;
+    min-height: 48px; padding: 10px 18px;
+    border-radius: 4px; border: none; cursor: pointer;
+    font-family: 'Courier New', monospace; font-size: 0.85rem;
+    letter-spacing: 1px; font-weight: bold;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(22,163,74,0.3);
+    white-space: nowrap;
+  }
+  .btn-success:hover { background: #15803d; }
+  .btn-success:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Modal Reparación Completada ── */
+  #modal-completar {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  #modal-completar.hidden { display: none; }
+  .modal-box {
+    background: var(--surface); border-radius: 12px;
+    padding: 28px 24px; width: 100%; max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .modal-title {
+    font-size: 1rem; font-weight: bold; letter-spacing: 1px;
+    color: var(--text); margin-bottom: 16px;
+  }
+  .modal-summary {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px;
+    font-size: 0.82rem; line-height: 1.8;
+    margin-bottom: 14px;
+  }
+  .modal-summary .lbl { color: var(--text-muted); }
+  .modal-warning {
+    font-size: 0.78rem; color: var(--warn-text);
+    background: var(--warn-bg); border: 1px solid var(--warn-border);
+    border-radius: 6px; padding: 10px 14px;
+    margin-bottom: 20px; letter-spacing: 0.5px;
+  }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1; background: var(--surface2); color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 12px; cursor: pointer;
+    font-family: 'Courier New', monospace; font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--text-muted); }
+  .btn-confirm {
+    flex: 2; background: #16a34a; color: #fff;
+    border: none; border-radius: 4px; padding: 12px;
+    cursor: pointer; font-family: 'Courier New', monospace;
+    font-size: 0.85rem; font-weight: bold; letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .btn-confirm:hover { background: #15803d; }
+  .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+  .modal-msg { font-size: 0.82rem; margin-top: 12px; min-height: 20px; text-align: center; }
+  .modal-msg.error { color: var(--danger); }
+  .modal-msg.success { color: var(--success); }
 </style>
 </head>
 <body>
@@ -281,6 +347,7 @@
   <div class="dias-badge" id="dias-badge" style="display:none"></div>
   <div class="propiedad-badge" id="propiedad-badge" style="display:none">★ PROPIEDAD</div>
   <div id="tecnico-badge-wrap"></div>
+  <button class="btn-success" id="btn-completar" onclick="completarReparacion()" style="display:none">✅ Reparación Completada</button>
   <div class="save-indicator" id="save-indicator"></div>
   <span class="ws-dot" id="ws-dot" title="WebSocket"></span>
 </header>
@@ -472,6 +539,22 @@
   </div>
 </main>
 
+<!-- Modal Reparación Completada -->
+<div id="modal-completar" class="hidden">
+  <div class="modal-box">
+    <div class="modal-title">✅ ¿Confirmar reparación completada?</div>
+    <div class="modal-summary" id="modal-summary"></div>
+    <div class="modal-warning">
+      ⚠ Se enviará un aviso por WhatsApp y el puesto quedará limpio automáticamente. Esta acción no se puede deshacer.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="cerrarModalCompletar()">Cancelar</button>
+      <button class="btn-confirm" id="btn-confirm-completar" onclick="confirmarCompletado()">Confirmar y enviar aviso</button>
+    </div>
+    <div class="modal-msg" id="modal-completar-msg"></div>
+  </div>
+</div>
+
 <script>
 const numero = parseInt(location.pathname.split('/').pop());
 document.getElementById('puesto-title').textContent = `PUESTO ${String(numero).padStart(2,'0')}`;
@@ -551,13 +634,14 @@ document.addEventListener('keydown', (e) => {
 
 function renderTecnicoBadge() {
   const wrap = document.getElementById('tecnico-badge-wrap');
-  if (!tecnicoActual) { wrap.innerHTML = ''; return; }
+  if (!tecnicoActual) { wrap.innerHTML = ''; updateCompletarBtn(); return; }
   wrap.innerHTML = `
     <div class="tecnico-badge">
       👤 ${tecnicoActual.nombre}
       <button class="btn-cambiar-tecnico" onclick="cambiarTecnico()">cambiar</button>
     </div>
   `;
+  updateCompletarBtn();
 }
 
 function cambiarTecnico() {
@@ -855,6 +939,72 @@ document.getElementById('es_propiedad').addEventListener('change', function() {
   if (badge) badge.style.display = this.checked ? '' : 'none';
 });
 
+// ── Reparación Completada ─────────────────────────────────────────────────────
+function updateCompletarBtn() {
+  const btn = document.getElementById('btn-completar');
+  if (!btn) return;
+  btn.style.display = tecnicoActual ? '' : 'none';
+}
+
+function completarReparacion() {
+  const curr = getFormData();
+  document.getElementById('modal-summary').innerHTML = `
+    <span class="lbl">Cliente:</span>  ${curr.nombre_cliente || '—'}<br>
+    <span class="lbl">Equipo:</span>   ${curr.nombre_equipo || '—'}<br>
+    <span class="lbl">Serie:</span>    ${curr.numero_serie || '—'}<br>
+    <span class="lbl">Técnico:</span>  ${tecnicoActual ? tecnicoActual.nombre : '—'}
+  `;
+  const msgEl = document.getElementById('modal-completar-msg');
+  msgEl.textContent = '';
+  msgEl.className = 'modal-msg';
+  const btnConf = document.getElementById('btn-confirm-completar');
+  btnConf.disabled = false;
+  btnConf.textContent = 'Confirmar y enviar aviso';
+  document.getElementById('modal-completar').classList.remove('hidden');
+}
+
+function cerrarModalCompletar() {
+  document.getElementById('modal-completar').classList.add('hidden');
+}
+
+async function confirmarCompletado() {
+  const btnConf = document.getElementById('btn-confirm-completar');
+  const msgEl   = document.getElementById('modal-completar-msg');
+  btnConf.disabled = true;
+  btnConf.textContent = 'Enviando aviso...';
+  msgEl.textContent = '';
+
+  try {
+    const res = await fetch(`/api/puesto/${numero}/completar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tecnico_id:     tecnicoActual ? tecnicoActual.id     : null,
+        tecnico_nombre: tecnicoActual ? tecnicoActual.nombre : 'Desconocido',
+      }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      msgEl.textContent = `Error al enviar el aviso: ${data.error}`;
+      msgEl.className = 'modal-msg error';
+      btnConf.disabled = false;
+      btnConf.textContent = 'Reintentar';
+      return;
+    }
+
+    // Éxito
+    msgEl.textContent = '✅ Aviso enviado correctamente';
+    msgEl.className = 'modal-msg success';
+    setTimeout(() => { window.location.href = '/'; }, 1500);
+  } catch (err) {
+    msgEl.textContent = `Error de conexión: ${err.message}`;
+    msgEl.className = 'modal-msg error';
+    btnConf.disabled = false;
+    btnConf.textContent = 'Reintentar';
+  }
+}
+
 // ── Historial ─────────────────────────────────────────────────────────────────
 function fmtTs(iso) {
   if (!iso) return '';
@@ -907,6 +1057,11 @@ function connectWS() {
         fillForm(msg.data, true);
       }
       if (msg.type === 'historial_updated' && msg.puesto_numero === numero) {
+        loadHistorial();
+      }
+      // Si este puesto fue completado desde otro dispositivo, recargamos la ficha
+      if (msg.type === 'puesto_completado' && msg.numero === numero) {
+        load();
         loadHistorial();
       }
     } catch {}

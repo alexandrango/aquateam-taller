@@ -169,6 +169,15 @@
     border-radius: 3px; letter-spacing: 1px; margin-bottom: 4px;
   }
   .puesto-card.propiedad { border-left: 3px solid #16a34a !important; }
+
+  /* Animación flash verde al completar reparación */
+  @keyframes flash-completado {
+    0%   { background: #dcfce7; box-shadow: 0 0 0 4px rgba(22,163,74,0.35); }
+    100% { background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  }
+  .puesto-card.completado-flash {
+    animation: flash-completado 1.2s ease forwards;
+  }
 </style>
 </head>
 <body>
@@ -285,6 +294,21 @@ function connectWS() {
       if (msg.type === 'stock_updated') {
         const hayAlerta = msg.data.some(s => !s.preparada);
         document.getElementById('stock-alert').classList.toggle('visible', hayAlerta);
+      }
+      if (msg.type === 'puesto_completado') {
+        // Actualizar tarjeta y aplicar flash verde
+        fetch(`/api/puesto/${msg.numero}`)
+          .then(r => r.json())
+          .then(p => {
+            updateCard(p);
+            setTimeout(() => {
+              const card = grid.querySelector(`[data-numero="${msg.numero}"]`);
+              if (card) {
+                card.classList.add('completado-flash');
+                setTimeout(() => card.classList.remove('completado-flash'), 1200);
+              }
+            }, 50);
+          });
       }
     } catch {}
   };

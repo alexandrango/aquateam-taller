@@ -3,3 +3,4 @@ uvicorn[standard]
 aiosqlite
 websockets
 python-multipart
+httpx

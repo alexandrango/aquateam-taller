@@ -1,8 +1,10 @@
 import json
 import os
 from contextlib import asynccontextmanager
+from datetime import date, datetime
 from typing import List
 
+import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -42,6 +44,86 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+
+# ── WhatsApp config ───────────────────────────────────────────────────────────
+WHATSAPP_TOKEN    = os.environ.get("WHATSAPP_TOKEN", "")
+WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID", "")
+WHATSAPP_DEST     = os.environ.get("WHATSAPP_DEST", "34627461015")
+
+CHECK_LABELS = {
+    "check_electrico":    "Problema eléctrico",
+    "check_no_enfria":    "No enfría",
+    "check_perdida_agua": "Pérdida de agua",
+}
+
+
+async def send_whatsapp_notification(puesto_data: dict, tecnico_nombre: str):
+    """Envía notificación WhatsApp al completar una reparación."""
+    problems = [label for key, label in CHECK_LABELS.items() if puesto_data.get(key)]
+    problema_str = ", ".join(problems) if problems else None
+
+    fecha_entrada = puesto_data.get("fecha_entrada", "")
+    if fecha_entrada:
+        try:
+            fecha_entrada = datetime.strptime(fecha_entrada, "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            pass
+
+    today = date.today().strftime("%d/%m/%Y")
+
+    lines = [
+        "🔧 MÁQUINA REPARADA - LISTA PARA ENTREGA",
+        "━━━━━━━━━━━━━━━━━━━━",
+    ]
+    if puesto_data.get("numero"):
+        lines.append(f"📍 Puesto: {puesto_data['numero']}")
+    if puesto_data.get("nombre_cliente"):
+        lines.append(f"👤 Cliente: {puesto_data['nombre_cliente']}")
+    if puesto_data.get("telefono"):
+        lines.append(f"📞 Teléfono: {puesto_data['telefono']}")
+    if puesto_data.get("es_comercial") and puesto_data.get("delegacion"):
+        lines.append(f"🏢 Delegación: {puesto_data['delegacion']}")
+    if puesto_data.get("nombre_equipo"):
+        lines.append(f"🖥️ Equipo: {puesto_data['nombre_equipo']}")
+    if puesto_data.get("numero_serie"):
+        lines.append(f"🔢 Serie: {puesto_data['numero_serie']}")
+    if problema_str:
+        lines.append(f"📋 Problema reportado: {problema_str}")
+    if tecnico_nombre:
+        lines.append(f"🔧 Técnico: {tecnico_nombre}")
+    if fecha_entrada:
+        lines.append(f"📅 Entrada taller: {fecha_entrada}")
+    lines.append(f"📅 Fecha reparación: {today}")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append("✅ Pendiente agendar entrega")
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": WHATSAPP_DEST,
+        "type": "text",
+        "text": {"body": "\n".join(lines)},
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_ID}/messages",
+            headers={
+                "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=10.0,
+        )
+
+    if resp.status_code >= 400:
+        try:
+            err = resp.json()
+            msg = err.get("error", {}).get("message", resp.text)
+        except Exception:
+            msg = resp.text
+        raise Exception(f"WhatsApp API error: {msg}")
+
+    return {"ok": True}
 
 
 @asynccontextmanager
@@ -129,6 +211,54 @@ async def api_update_puesto(numero: int, data: dict):
         json.dumps({"type": "puesto_updated", "numero": numero, "data": updated})
     )
     return updated
+
+
+@app.post("/api/puesto/{numero}/completar")
+async def api_completar_puesto(numero: int, body: dict):
+    """Marca la reparación como completada: envía WhatsApp y limpia el puesto."""
+    p = await get_puesto(numero)
+    if not p:
+        raise HTTPException(404, "Puesto no encontrado")
+
+    tecnico_id     = body.get("tecnico_id")
+    tecnico_nombre = body.get("tecnico_nombre", "Desconocido")
+
+    # 1. Intentar enviar WhatsApp — si falla, abortar sin tocar el puesto
+    try:
+        await send_whatsapp_notification(p, tecnico_nombre)
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+    # 2. Registrar en historial
+    await add_historial(
+        puesto_numero=numero,
+        tecnico_id=tecnico_id,
+        tecnico_nombre=tecnico_nombre,
+        accion="Reparación completada — aviso WhatsApp enviado",
+    )
+
+    # 3. Limpiar el puesto (reset a valores vacíos)
+    empty: dict = {}
+    for k in ("nombre_cliente", "codigo_cliente", "delegacion", "fecha_entrada",
+              "telefono", "nombre_equipo", "numero_serie", "codigo_barras",
+              "descripcion_problema"):
+        empty[k] = ""
+    for k in ("es_comercial", "es_alquiler", "es_propiedad",
+              "check_electrico", "check_botones", "check_no_enfria", "check_perdida_agua",
+              "diag_frio_termostato", "diag_frio_condensador", "diag_frio_gas",
+              "diag_elec_agitador", "diag_elec_cableria", "diag_elec_termostato",
+              "diag_elec_compresor", "diag_elec_botonera",
+              "diag_agua_pin_electrico", "diag_agua_banco_hielo",
+              "diag_agua_bomba_laton", "diag_agua_condensador"):
+        empty[k] = 0
+    await update_puesto(numero, empty)
+
+    # 4. Broadcast WebSocket
+    await manager.broadcast(
+        json.dumps({"type": "puesto_completado", "numero": numero})
+    )
+
+    return {"ok": True}
 
 
 # ── API stock ─────────────────────────────────────────────────────────────────
