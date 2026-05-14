@@ -211,6 +211,8 @@
   .btn-primary:hover { background: #ea6c0a; }
   .btn-danger { background: var(--surface2); color: var(--danger); border: 1px solid var(--danger); }
   .btn-danger:hover { background: var(--danger-dim); }
+  .btn-completar { background: #16a34a; color: #fff; box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
+  .btn-completar:hover { background: #15803d; }
 
   .diag-panels { display: flex; flex-direction: column; gap: 8px; }
   .diag-panel { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
@@ -347,7 +349,6 @@
   <div class="dias-badge" id="dias-badge" style="display:none"></div>
   <div class="propiedad-badge" id="propiedad-badge" style="display:none">★ PROPIEDAD</div>
   <div id="tecnico-badge-wrap"></div>
-  <button class="btn-success" id="btn-completar" onclick="completarReparacion()" style="display:none">✅ Reparación Completada</button>
   <div class="save-indicator" id="save-indicator"></div>
   <span class="ws-dot" id="ws-dot" title="WebSocket"></span>
 </header>
@@ -522,6 +523,7 @@
   <div class="btn-row">
     <button class="btn btn-primary" onclick="saveNow()">💾 GUARDAR AHORA</button>
     <button class="btn btn-danger" onclick="limpiarPuesto()">🗑 LIMPIAR PUESTO</button>
+    <button class="btn btn-completar" id="btn-completar" onclick="completarReparacion()" style="display:none">✅ Reparación Completada</button>
   </div>
   <div class="validation-msg" id="validation-msg"></div>
 
