@@ -211,8 +211,9 @@
   .btn-primary:hover { background: #ea6c0a; }
   .btn-danger { background: var(--surface2); color: var(--danger); border: 1px solid var(--danger); }
   .btn-danger:hover { background: var(--danger-dim); }
-  .btn-completar { background: #16a34a; color: #fff; box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
+  .btn-completar { display: none; background: #16a34a; color: #fff; box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
   .btn-completar:hover { background: #15803d; }
+  .btn-completar.visible { display: inline-block; }
 
   .diag-panels { display: flex; flex-direction: column; gap: 8px; }
   .diag-panel { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
@@ -523,7 +524,7 @@
   <div class="btn-row">
     <button class="btn btn-primary" onclick="saveNow()">💾 GUARDAR AHORA</button>
     <button class="btn btn-danger" onclick="limpiarPuesto()">🗑 LIMPIAR PUESTO</button>
-    <button class="btn btn-completar" id="btn-completar" onclick="completarReparacion()" style="display:none">✅ Reparación Completada</button>
+    <button class="btn btn-completar" id="btn-completar" onclick="completarReparacion()">✅ Reparación Completada</button>
   </div>
   <div class="validation-msg" id="validation-msg"></div>
 
@@ -948,7 +949,7 @@ function updateCompletarBtn() {
   const btn = document.getElementById('btn-completar');
   if (!btn) return;
   const esPropiedad = !!document.getElementById('es_propiedad')?.checked;
-  btn.style.display = (tecnicoActual && esPropiedad) ? 'inline-block' : 'none';
+  btn.classList.toggle('visible', !!(tecnicoActual && esPropiedad));
 }
 
 function completarReparacion() {
