@@ -70,10 +70,15 @@ async def send_whatsapp_notification(puesto_data: dict, tecnico_nombre: str):
         "phone": destino,
         "template_name": "maquina_reparada",
         "components": [
-            {"type": "text", "text": cliente_completo or "Sin nombre"},
-            {"type": "text", "text": puesto_data.get("nombre_equipo") or "Sin equipo"},
-            {"type": "text", "text": puesto_data.get("numero_serie") or "Sin serie"},
-            {"type": "text", "text": problema_texto or "Sin descripción"},
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": cliente_completo or "Sin nombre"},
+                    {"type": "text", "text": puesto_data.get("nombre_equipo") or "Sin equipo"},
+                    {"type": "text", "text": puesto_data.get("numero_serie") or "Sin serie"},
+                    {"type": "text", "text": problema_texto or "Sin descripción"},
+                ],
+            }
         ],
     }
 
