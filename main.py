@@ -82,9 +82,12 @@ async def send_whatsapp_notification(puesto_data: dict, tecnico_nombre: str):
         ],
     }
 
+    import json as _json
+    print("[send_whatsapp] payload →", _json.dumps(payload, ensure_ascii=False), flush=True)
     auth = (os.getenv("PANEL_USERNAME", "admin"), os.getenv("PANEL_PASSWORD", ""))
     async with httpx.AsyncClient() as client:
         response = await client.post(gateway_url, json=payload, timeout=10, auth=auth)
+        print(f"[send_whatsapp] status={response.status_code} body={response.text}", flush=True)
         if response.status_code != 200:
             raise Exception(f"Gateway error {response.status_code}: {response.text}")
 
